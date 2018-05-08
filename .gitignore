@@ -1,0 +1,8 @@
+.vscode
+bin*
+data
+games
+debug
+*.apk
+mcpeserver
+*.upx
