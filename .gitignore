@@ -6,3 +6,4 @@ debug
 *.apk
 mcpeserver
 *.upx
+.readline-history

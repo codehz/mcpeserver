@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -14,12 +15,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
+	"github.com/kr/pty"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
@@ -264,6 +266,218 @@ func unpack(base string, file string) {
 	fmt.Print("\033[0m")
 }
 
+var completer = readline.NewPrefixCompleter(
+	readline.PcItem("op"),
+	readline.PcItem("help"),
+	readline.PcItem("give"),
+	readline.PcItem("always"),
+	readline.PcItem("kill"),
+	readline.PcItem("clear"),
+	readline.PcItem("clone"),
+	readline.PcItem("deop"),
+	readline.PcItem("effect"),
+	readline.PcItem("enchant"),
+	readline.PcItem("effect"),
+	readline.PcItem("execute"),
+	readline.PcItem("fill"),
+	readline.PcItem("gamerule",
+		readline.PcItem("commandBlockOutput"),
+		readline.PcItem("doDaylightCycle"),
+		readline.PcItem("doEntityDrops"),
+		readline.PcItem("doFireTick"),
+		readline.PcItem("doMobLoot"),
+		readline.PcItem("doMobSpawning"),
+		readline.PcItem("doTileDrops"),
+		readline.PcItem("doWeatherCycle"),
+		readline.PcItem("drowningdamage"),
+		readline.PcItem("falldamage"),
+		readline.PcItem("firedamage"),
+		readline.PcItem("keepInventory"),
+		readline.PcItem("mobGriefing"),
+		readline.PcItem("naturalRegeneration"),
+		readline.PcItem("pvp"),
+		readline.PcItem("sendCommandFeedback"),
+		readline.PcItem("showcoordinates"),
+		readline.PcItem("tntexplodes"),
+	),
+	readline.PcItem("list"),
+	readline.PcItem("playsound"),
+	readline.PcItem("replaceitem",
+		readline.PcItem("block"),
+		readline.PcItem("entity"),
+	),
+	readline.PcItem("setmaxplayers"),
+	readline.PcItem("setworldspawn"),
+	readline.PcItem("spawnpoint"),
+	readline.PcItem("spreadplayers"),
+	readline.PcItem("stopsound"),
+	readline.PcItem("summon",
+		readline.PcItem("item"),
+		readline.PcItem("xp_orb"),
+		readline.PcItem("tnt"),
+		readline.PcItem("falling_block"),
+		readline.PcItem("moving_block"),
+		readline.PcItem("armor_stand"),
+		readline.PcItem("xp_bottle"),
+		readline.PcItem("eye_of_ender_signal"),
+		readline.PcItem("ender_crystal"),
+		readline.PcItem("fireworks_rocket"),
+		readline.PcItem("shulker_bullet"),
+		readline.PcItem("fishing_hook"),
+		readline.PcItem("dragon_fireball"),
+		readline.PcItem("arrow"),
+		readline.PcItem("snowball"),
+		readline.PcItem("egg"),
+		readline.PcItem("painting"),
+		readline.PcItem("minecart"),
+		readline.PcItem("large_fireball"),
+		readline.PcItem("splash_potion"),
+		readline.PcItem("ender_pearl"),
+		readline.PcItem("leash_knot"),
+		readline.PcItem("wither_skull"),
+		readline.PcItem("boat"),
+		readline.PcItem("wither_skull_dangerous"),
+		readline.PcItem("lightning_bolt"),
+		readline.PcItem("small_fireball"),
+		readline.PcItem("area_effect_cloud"),
+		readline.PcItem("hopper_minecart"),
+		readline.PcItem("tnt_minecart"),
+		readline.PcItem("chest_minecart"),
+		readline.PcItem("command_block_minecart"),
+		readline.PcItem("lingering_potion"),
+		readline.PcItem("llama_spit"),
+		readline.PcItem("evocation_fang"),
+		readline.PcItem("zombie"),
+		readline.PcItem("creeper"),
+		readline.PcItem("skeleton"),
+		readline.PcItem("spider"),
+		readline.PcItem("zombie_pigman"),
+		readline.PcItem("slime"),
+		readline.PcItem("enderman"),
+		readline.PcItem("silverfish"),
+		readline.PcItem("cave_spider"),
+		readline.PcItem("ghast"),
+		readline.PcItem("magma_cube"),
+		readline.PcItem("blaze"),
+		readline.PcItem("zombie_villager"),
+		readline.PcItem("witch"),
+		readline.PcItem("stray"),
+		readline.PcItem("husk"),
+		readline.PcItem("wither_skeleton"),
+		readline.PcItem("guardian"),
+		readline.PcItem("elder_guardian"),
+		readline.PcItem("wither"),
+		readline.PcItem("ender_dragon"),
+		readline.PcItem("shulker"),
+		readline.PcItem("endermite"),
+		readline.PcItem("vindicator"),
+		readline.PcItem("evocation_illager"),
+		readline.PcItem("vex"),
+		readline.PcItem("chicken"),
+		readline.PcItem("cow"),
+		readline.PcItem("pig"),
+		readline.PcItem("sheep"),
+		readline.PcItem("wolf"),
+		readline.PcItem("villager"),
+		readline.PcItem("mooshroom"),
+		readline.PcItem("squid"),
+		readline.PcItem("rabbit"),
+		readline.PcItem("bat"),
+		readline.PcItem("iron_golem"),
+		readline.PcItem("snow_golem"),
+		readline.PcItem("ocelot"),
+		readline.PcItem("horse"),
+		readline.PcItem("donkey"),
+		readline.PcItem("mule"),
+		readline.PcItem("skeleton_horse"),
+		readline.PcItem("zombie_horse"),
+		readline.PcItem("polar_bear"),
+		readline.PcItem("llama"),
+		readline.PcItem("parrot"),
+		readline.PcItem("dolphin"),
+		readline.PcItem("player"),
+		readline.PcItem("npc"),
+		readline.PcItem("learn_to_code_mascot"),
+		readline.PcItem("tripod_camera"),
+		readline.PcItem("chalkboard"),
+	),
+	readline.PcItem("teleport"),
+	readline.PcItem("tell"),
+	readline.PcItem("msg"),
+	readline.PcItem("w"),
+	readline.PcItem("testfor"),
+	readline.PcItem("testforblock"),
+	readline.PcItem("testforblocks"),
+	readline.PcItem("tickingarea"),
+	readline.PcItem("time",
+		readline.PcItem("add"),
+		readline.PcItem("query",
+			readline.PcItem("daytime"),
+			readline.PcItem("gametime"),
+			readline.PcItem("day"),
+		),
+		readline.PcItem("set"),
+	),
+	readline.PcItem("title"),
+	readline.PcItem("toggledownfall"),
+	readline.PcItem("transferserver	"),
+	readline.PcItem("wsserver"),
+	readline.PcItem("xp"),
+	readline.PcItem("tp"),
+	readline.PcItem("weather",
+		readline.PcItem("clear"),
+		readline.PcItem("rain"),
+		readline.PcItem("thunder"),
+	),
+	readline.PcItem("gamemode",
+		readline.PcItem("survival"),
+		readline.PcItem("creative"),
+		readline.PcItem("adventure"),
+	),
+	readline.PcItem("difficulty",
+		readline.PcItem("peaceful"),
+		readline.PcItem("easy"),
+		readline.PcItem("normal"),
+		readline.PcItem("hard"),
+	),
+)
+
+var replacer = strings.NewReplacer(
+	"§0", "\033[30m", // black
+	"§1", "\033[34m", // blue
+	"§2", "\033[32m", // green
+	"§3", "\033[36m", // aqua
+	"§4", "\033[31m", // red
+	"§5", "\033[35m", // purple
+	"§6", "\033[33m", // gold
+	"§7", "\033[37m", // gray
+	"§8", "\033[90m", // dark gray
+	"§9", "\033[94m", // light blue
+	"§a", "\033[92m", // light green
+	"§b", "\033[96m", // light aque
+	"§c", "\033[91m", // light red
+	"§d", "\033[95m", // light purple
+	"§e", "\033[93m", // light yellow
+	"§f", "\033[97m", // light white
+	"§k", "\033[5m", // Obfuscated
+	"§l", "\033[1m", // Bold
+	"§m", "\033[2m", // Strikethrough
+	"§n", "\033[4m", // Underline
+	"§o", "\033[3m", // Italic
+	"§r", "\033[0m", // Reset
+)
+
+func packOutput(input io.Reader, output func(string)) {
+	reader := bufio.NewReader(input)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		output(strings.TrimRight(replacer.Replace(line), "\n"))
+	}
+}
+
 func run(base string, datapath string) {
 	abs, err := filepath.Abs(base)
 	if err != nil {
@@ -272,23 +486,57 @@ func run(base string, datapath string) {
 	cmd := exec.Command(filepath.Join(abs, "server"))
 	cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s", abs))
 	cmd.Dir = datapath
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		printWarn("Request Kill Server")
-		cmd.Process.Kill()
-	}()
-	err = cmd.Start()
+	f, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("pid: %d\n", cmd.Process.Pid)
+	rl, _ := readline.NewEx(&readline.Config{
+		Prompt:          "\033[33mminecraft>\033[0m ",
+		HistoryFile:     ".readline-history",
+		AutoComplete:    completer,
+		InterruptPrompt: "^C",
+		EOFPrompt:       "quit",
+
+		HistorySearchFold: true,
+		FuncFilterInputRune: func(r rune) (rune, bool) {
+			if r == readline.CharCtrlZ {
+				return r, false
+			}
+			return r, true
+		},
+	})
+	defer rl.Close()
+	lw := rl.Stdout()
+	cache := 0
+	go packOutput(f, func(text string) {
+		if cache == 0 {
+			fmt.Fprintf(lw, "\033[0m%s\033[0m\n", text)
+		} else {
+			cache--
+		}
+	})
+	for {
+		line, err := rl.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
+			break
+		}
+		line = strings.TrimSpace(line)
+		switch {
+		default:
+			cache++
+			fmt.Fprintf(f, "%s\n", line)
+		}
+	}
+	printWarn("Killing")
+	cmd.Process.Signal(os.Interrupt)
 	cmd.Wait()
-	signal.Reset(os.Interrupt)
-	printInfo("Finished")
 }
 
 type downloadCmd struct {
