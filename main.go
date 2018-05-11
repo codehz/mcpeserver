@@ -20,11 +20,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/valyala/fasttemplate"
-
 	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
 	"github.com/kr/pty"
+	"github.com/valyala/fasttemplate"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
