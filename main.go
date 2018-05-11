@@ -642,7 +642,8 @@ func prepare(data string, link string) {
 	os.MkdirAll(link, os.ModePerm)
 	os.MkdirAll(linkMods, os.ModePerm)
 	if _, err := os.Stat(linkProps); os.IsNotExist(err) {
-		f, err := os.OpenFile(linkProps, os.O_RDONLY|os.O_CREATE, os.ModePerm)
+		f, err := os.OpenFile(linkProps, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		fmt.Fprintln(f, "motd=Minecraft Server\nlevel-dir=world\nlevel-name=Default Server World")
 		if err != nil {
 			panic(err)
 		}
