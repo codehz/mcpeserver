@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -467,8 +468,8 @@ var replacer = strings.NewReplacer(
 	"§r", "\033[0m", // Reset
 	"[", "\033[1m[",
 	"]", "]\033[22m",
-	"(", "\033[4m(",
-	")", ")\033[24m",
+	"(", "(\033[4m",
+	")", "\033[24m)",
 	"<", "\033[1m<",
 	">", ">\033[22m",
 )
@@ -496,8 +497,20 @@ func run(base string, datapath string) {
 	if err != nil {
 		panic(err)
 	}
+	username := "nobody"
+	hostname := "mcpeserver"
+	{
+		u, err := user.Current()
+		if err == nil {
+			username = u.Username
+		}
+		hn, err := os.Hostname()
+		if err == nil {
+			hostname = hn
+		}
+	}
 	rl, _ := readline.NewEx(&readline.Config{
-		Prompt:          "\033[33mminecraft>\033[0m ",
+		Prompt:          fmt.Sprintf("\033[0;36;1mmcpe:\033[22m//%s@%s$ \033[33;4m", username, hostname),
 		HistoryFile:     ".readline-history",
 		AutoComplete:    completer,
 		InterruptPrompt: "^C",
