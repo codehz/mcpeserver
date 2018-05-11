@@ -22,6 +22,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
+	"github.com/gorilla/websocket"
 	"github.com/kr/pty"
 	"github.com/valyala/fasttemplate"
 	"gopkg.in/cheggaaa/pb.v1"
@@ -486,7 +487,9 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func run(base string, datapath string, prompt *fasttemplate.Template) {
+var upgrader = websocket.Upgrader{}
+
+func runImpl(base string, datapath string) (*os.File, func()) {
 	abs, err := filepath.Abs(base)
 	if err != nil {
 		panic(err)
@@ -498,6 +501,14 @@ func run(base string, datapath string, prompt *fasttemplate.Template) {
 	if err != nil {
 		panic(err)
 	}
+	return f, func() {
+		cmd.Process.Signal(os.Interrupt)
+		cmd.Wait()
+	}
+}
+
+func run(base string, datapath string, ws string, prompt *fasttemplate.Template) {
+	f, stop := runImpl(base, datapath)
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
@@ -510,7 +521,6 @@ func run(base string, datapath string, prompt *fasttemplate.Template) {
 			hostname = hn
 		}
 	}
-	// t := fasttemplate.New("\033[0;36;1mmcpe:\033[22m//{{username}}@{{hostname}}$ \033[33;4m", "{{", "}}")
 	rl, _ := readline.NewEx(&readline.Config{
 		Prompt: prompt.ExecuteString(map[string]interface{}{
 			"username": username,
@@ -557,8 +567,7 @@ func run(base string, datapath string, prompt *fasttemplate.Template) {
 			fmt.Fprintf(f, "%s\n", line)
 		}
 	}
-	cmd.Process.Signal(os.Interrupt)
-	cmd.Wait()
+	stop()
 }
 
 type downloadCmd struct {
@@ -630,10 +639,11 @@ func (c *unpackCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 }
 
 type runCmd struct {
-	bin    string
-	data   string
-	link   string
-	prompt string
+	bin       string
+	data      string
+	link      string
+	prompt    string
+	websocket string
 }
 
 func (*runCmd) Name() string {
@@ -645,7 +655,7 @@ func (*runCmd) Synopsis() string {
 }
 
 func (*runCmd) Usage() string {
-	return "run [-bin] [-data] [-link]\n\tRun Minecraft Server\n"
+	return "run [-bin] [-data] [-link] [-prompt] [-websocket]\n\tRun Minecraft Server\n"
 }
 
 func (c *runCmd) SetFlags(f *flag.FlagSet) {
@@ -653,6 +663,7 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.bin, "bin", "bin", "Minecraft Server Binary Path")
 	f.StringVar(&c.link, "link", "games", "World Link Path")
 	f.StringVar(&c.prompt, "prompt", "\033[0;36;1mmcpe:\033[22m//{{username}}@{{hostname}}$ \033[33;4m", "Prompt String Template")
+	f.StringVar(&c.websocket, "websocket", "", "WebSocket Server Port(Disabled If Blank)")
 }
 
 func prepare(data string, link string) {
@@ -692,7 +703,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	c.link, _ = filepath.Abs(c.link)
 	c.bin, _ = filepath.Abs(c.bin)
 	prepare(c.data, c.link)
-	run(c.bin, c.data, fasttemplate.New(c.prompt, "{{", "}}"))
+	run(c.bin, c.data, c.websocket, fasttemplate.New(c.prompt, "{{", "}}"))
 	return subcommands.ExitSuccess
 }
 
