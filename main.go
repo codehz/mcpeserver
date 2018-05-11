@@ -490,7 +490,6 @@ func run(base string, datapath string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("pid: %d\n", cmd.Process.Pid)
 	rl, _ := readline.NewEx(&readline.Config{
 		Prompt:          "\033[33mminecraft>\033[0m ",
 		HistoryFile:     ".readline-history",
@@ -534,7 +533,6 @@ func run(base string, datapath string) {
 			fmt.Fprintf(f, "%s\n", line)
 		}
 	}
-	printWarn("Killing")
 	cmd.Process.Signal(os.Interrupt)
 	cmd.Wait()
 }
