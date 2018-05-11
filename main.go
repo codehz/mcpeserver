@@ -85,6 +85,7 @@ type runCmd struct {
 	link      string
 	prompt    string
 	websocket string
+	token     string
 }
 
 func (*runCmd) Name() string {
@@ -96,7 +97,7 @@ func (*runCmd) Synopsis() string {
 }
 
 func (*runCmd) Usage() string {
-	return "run [-bin] [-data] [-link] [-prompt] [-websocket]\n\tRun Minecraft Server\n"
+	return "run [-bin] [-data] [-link] [-prompt] [-websocket] [-token]\n\tRun Minecraft Server\n"
 }
 
 func (c *runCmd) SetFlags(f *flag.FlagSet) {
@@ -105,6 +106,7 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.link, "link", "games", "World Link Path")
 	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
 	f.StringVar(&c.websocket, "websocket", "", "WebSocket Server Port(Disabled If Blank)")
+	f.StringVar(&c.token, "token", "", "WebSocket Server Token(Random If Blank)")
 }
 
 func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
@@ -118,7 +120,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	c.link, _ = filepath.Abs(c.link)
 	c.bin, _ = filepath.Abs(c.bin)
 	prepare(c.data, c.link)
-	run(c.bin, c.data, c.websocket, fasttemplate.New(c.prompt, "{{", "}}"))
+	run(c.bin, c.data, fasttemplate.New(c.prompt, "{{", "}}"), c.websocket, c.token)
 	return subcommands.ExitSuccess
 }
 

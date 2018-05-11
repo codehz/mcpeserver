@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/gorilla/websocket"
 	"github.com/kr/pty"
 	"github.com/valyala/fasttemplate"
 )
@@ -54,7 +53,7 @@ func packOutput(input io.Reader, output func(string)) {
 		if err != nil {
 			break
 		}
-		output(strings.TrimRight(replacer.Replace(line), "\n"))
+		output(strings.TrimRight(line, "\n"))
 	}
 }
 
@@ -76,12 +75,14 @@ func runImpl(base string, datapath string) (*os.File, func()) {
 	}
 }
 
-var upgrader = websocket.Upgrader{}
-
-func run(base string, datapath string, ws string, prompt *fasttemplate.Template) {
+func run(base string, datapath string, prompt *fasttemplate.Template, ws string, token string) {
 	f, stop := runImpl(base, datapath)
 	defer f.Close()
 	defer stop()
+	exec := make(chan string)
+	defer close(exec)
+	boardcast, stopWs := newWs(exec, ws, token)
+	defer stopWs()
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
@@ -118,11 +119,23 @@ func run(base string, datapath string, ws string, prompt *fasttemplate.Template)
 	cache := 0
 	go packOutput(f, func(text string) {
 		if cache == 0 {
-			fmt.Fprintf(lw, "\033[0m%s\033[0m\n", text)
+			boardcast(text)
+			fmt.Fprintf(lw, "\033[0m%s\033[0m\n", replacer.Replace(text))
 		} else {
+			boardcast(fmt.Sprintf("input: %s", text))
 			cache--
 		}
 	})
+	go func() {
+		for {
+			cmd, ok := <-exec
+			if ok {
+				fmt.Fprintf(f, "%s\n", cmd)
+			} else {
+				break
+			}
+		}
+	}()
 	for {
 		line, err := rl.Readline()
 		if err == readline.ErrInterrupt {
