@@ -1,3 +1,3 @@
-mcpeserver: main.go
+mcpeserver: ${wildcard *.go}
 	GOARCH=386 go build -ldflags="-s -w"
 	goupx --brute mcpeserver
