@@ -465,6 +465,12 @@ var replacer = strings.NewReplacer(
 	"§n", "\033[4m", // Underline
 	"§o", "\033[3m", // Italic
 	"§r", "\033[0m", // Reset
+	"[", "\033[1m[",
+	"]", "]\033[22m",
+	"(", "\033[4m(",
+	")", ")\033[24m",
+	"<", "\033[1m<",
+	">", ">\033[22m",
 )
 
 func packOutput(input io.Reader, output func(string)) {
