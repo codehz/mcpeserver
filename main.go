@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/valyala/fasttemplate"
+
 	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
 	"github.com/kr/pty"
@@ -485,7 +487,7 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func run(base string, datapath string) {
+func run(base string, datapath string, prompt *fasttemplate.Template) {
 	abs, err := filepath.Abs(base)
 	if err != nil {
 		panic(err)
@@ -509,8 +511,12 @@ func run(base string, datapath string) {
 			hostname = hn
 		}
 	}
+	// t := fasttemplate.New("\033[0;36;1mmcpe:\033[22m//{{username}}@{{hostname}}$ \033[33;4m", "{{", "}}")
 	rl, _ := readline.NewEx(&readline.Config{
-		Prompt:          fmt.Sprintf("\033[0;36;1mmcpe:\033[22m//%s@%s$ \033[33;4m", username, hostname),
+		Prompt: prompt.ExecuteString(map[string]interface{}{
+			"username": username,
+			"hostname": hostname,
+		}),
 		HistoryFile:     ".readline-history",
 		AutoComplete:    completer,
 		InterruptPrompt: "^C",
@@ -625,9 +631,10 @@ func (c *unpackCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 }
 
 type runCmd struct {
-	bin  string
-	data string
-	link string
+	bin    string
+	data   string
+	link   string
+	prompt string
 }
 
 func (*runCmd) Name() string {
@@ -646,6 +653,7 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&c.bin, "bin", "bin", "Minecraft Server Binary Path")
 	f.StringVar(&c.link, "link", "games", "World Link Path")
+	f.StringVar(&c.prompt, "prompt", "\033[0;36;1mmcpe:\033[22m//{{username}}@{{hostname}}$ \033[33;4m", "Prompt String Template")
 }
 
 func prepare(data string, link string) {
@@ -685,7 +693,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	c.link, _ = filepath.Abs(c.link)
 	c.bin, _ = filepath.Abs(c.bin)
 	prepare(c.data, c.link)
-	run(c.bin, c.data)
+	run(c.bin, c.data, fasttemplate.New(c.prompt, "{{", "}}"))
 	return subcommands.ExitSuccess
 }
 
