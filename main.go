@@ -509,6 +509,7 @@ func runImpl(base string, datapath string) (*os.File, func()) {
 
 func run(base string, datapath string, ws string, prompt *fasttemplate.Template) {
 	f, stop := runImpl(base, datapath)
+	defer f.Close()
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
@@ -525,6 +526,7 @@ func run(base string, datapath string, ws string, prompt *fasttemplate.Template)
 		Prompt: prompt.ExecuteString(map[string]interface{}{
 			"username": username,
 			"hostname": hostname,
+			"esc":      "\033",
 		}),
 		HistoryFile:     ".readline-history",
 		AutoComplete:    completer,
@@ -662,7 +664,7 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&c.bin, "bin", "bin", "Minecraft Server Binary Path")
 	f.StringVar(&c.link, "link", "games", "World Link Path")
-	f.StringVar(&c.prompt, "prompt", "\033[0;36;1mmcpe:\033[22m//{{username}}@{{hostname}}$ \033[33;4m", "Prompt String Template")
+	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
 	f.StringVar(&c.websocket, "websocket", "", "WebSocket Server Port(Disabled If Blank)")
 }
 
