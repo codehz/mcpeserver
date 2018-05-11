@@ -634,11 +634,13 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 func prepare(data string, link string) {
 	games := filepath.Join(data, "games")
 	props := filepath.Join(data, "server.properties")
+	mods := filepath.Join(data, "mods")
 	linkProps := filepath.Join(link, "server.properties")
+	linkMods := filepath.Join(link, "mods")
 	gamesProps := filepath.Join(games, "server.properties")
-	if _, err := os.Stat(link); os.IsNotExist(err) {
-		os.MkdirAll(link, os.ModePerm)
-	}
+	gamesMods := filepath.Join(games, "mods")
+	os.MkdirAll(link, os.ModePerm)
+	os.MkdirAll(linkMods, os.ModePerm)
 	if _, err := os.Stat(linkProps); os.IsNotExist(err) {
 		f, err := os.OpenFile(linkProps, os.O_RDONLY|os.O_CREATE, os.ModePerm)
 		if err != nil {
@@ -649,9 +651,9 @@ func prepare(data string, link string) {
 		}
 	}
 	os.RemoveAll(games)
-	os.RemoveAll(props)
 	os.Symlink(link, games)
 	os.Symlink(gamesProps, props)
+	os.Symlink(gamesMods, mods)
 }
 
 func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
