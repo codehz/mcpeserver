@@ -17,6 +17,8 @@ chmod +x  mcpeserver
 
 * You must provide a valid minecraft x86 apk
 
+More document can be found in [wiki](https://github.com/codehz/mcpeserver/wiki)
+
 ## Features
 
 * Auto Complete For Command
