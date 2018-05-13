@@ -11,7 +11,7 @@ Powered By [MCMrARM/mcpelauncher-linux](https://github.com/MCMrARM/mcpelauncher-
 wget $(curl -s https://api.github.com/repos/codehz/mcpeserver/releases/latest|jq -r '.assets[0].browser_download_url')
 chmod +x  mcpeserver
 ./mcpeserver download # download the core binary for minecraft server
-./mcpeserver unpack XXX.apk # unpack assets from minecraft
+./mcpeserver unpack -apk XXX.apk # unpack assets from minecraft
 ./mcpeserver run # running!
 ```
 
