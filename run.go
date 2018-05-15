@@ -118,12 +118,16 @@ func run(base string, datapath string, prompt *fasttemplate.Template, ws string,
 	lw := rl.Stdout()
 	cache := 0
 	go packOutput(f, func(text string) {
-		if cache == 0 {
-			boardcast(text)
-			fmt.Fprintf(lw, "\033[0m%s\033[0m\n", replacer.Replace(text))
+		if strings.HasPrefix(text, "\x07") {
+			fmt.Fprintf(f, "%s\n", text[1:len(text)-1])
 		} else {
-			boardcast(fmt.Sprintf("input: %s", text))
-			cache--
+			if cache == 0 {
+				boardcast(text)
+				fmt.Fprintf(lw, "\033[0m%s\033[0m\n", replacer.Replace(text))
+			} else {
+				boardcast(fmt.Sprintf("input: %s", text))
+				cache--
+			}
 		}
 	})
 	go func() {
