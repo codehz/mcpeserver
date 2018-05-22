@@ -124,6 +124,41 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	return subcommands.ExitSuccess
 }
 
+type modsCmd struct {
+	endpoint string
+	info     string
+	remote   bool
+	download string
+}
+
+func (*modsCmd) Name() string     { return "mods" }
+func (*modsCmd) Synopsis() string { return "Mods Management" }
+func (*modsCmd) Usage() string    { return "mods [--endpoint] [--info] [--remote] [--download]\n" }
+func (c *modsCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&c.endpoint, "endpoint", "https://mcpe.codehz.one/", "Mods Repo Endpoint")
+	f.StringVar(&c.info, "info", "", "Display a Remote Mods' info")
+	f.BoolVar(&c.remote, "remote", false, "List Remote Mods")
+	f.StringVar(&c.download, "download", "", "Download Mod")
+}
+func (c *modsCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\033[5;91mError: \n", r)
+			ret = subcommands.ExitFailure
+		}
+	}()
+	if c.remote {
+		listRemoteMod(c.endpoint)
+	} else if len(c.info) > 0 {
+		infoRemoteMod(c.endpoint, c.info)
+	} else if len(c.download) > 0 {
+		downloadMod(c.endpoint, c.download)
+	} else {
+		listLocalMod()
+	}
+	return subcommands.ExitSuccess
+}
+
 type updateCmd struct {
 	path string
 }
@@ -177,6 +212,7 @@ func main() {
 	subcommands.Register(&unpackCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&updateCmd{}, "")
+	subcommands.Register(&modsCmd{}, "")
 	subcommands.Register(&versionCmd{}, "")
 
 	flag.Parse()
