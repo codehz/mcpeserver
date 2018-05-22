@@ -124,6 +124,40 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	return subcommands.ExitSuccess
 }
 
+type updateCmd struct {
+	path string
+}
+
+func (*updateCmd) Name() string {
+	return "update"
+}
+
+func (*updateCmd) Synopsis() string {
+	return "Update Self"
+}
+
+func (*updateCmd) Usage() string {
+	return "update [-target]\n"
+}
+
+func (c *updateCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&c.path, "path", "./mcpeserver", "Download target")
+}
+
+func (c *updateCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\033[5;91mError: \n", r)
+			ret = subcommands.ExitFailure
+		}
+	}()
+	printInfo("Get Latest Release...")
+	url := getServerURL()
+	printPair("URL", url)
+	fetchBinary(url, c.path)
+	return subcommands.ExitSuccess
+}
+
 func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
@@ -131,6 +165,7 @@ func main() {
 	subcommands.Register(&downloadCmd{}, "")
 	subcommands.Register(&unpackCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
+	subcommands.Register(&updateCmd{}, "")
 
 	flag.Parse()
 	ctx := context.Background()
