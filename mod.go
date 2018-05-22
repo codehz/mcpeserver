@@ -55,7 +55,7 @@ func listRemoteMod(endpoint string) {
 	}
 }
 
-func infoRemoteMod(endpoint, name string) {
+func infoRemoteMod(endpoint, name string) string {
 	resp, err := http.Get(endpoint + "/mods/" + name)
 	if err != nil {
 		panic(err)
@@ -83,26 +83,19 @@ func infoRemoteMod(endpoint, name string) {
 	printPair("Desc", linfo.Desc)
 	printPair("Version", info.Version)
 	printPair("Main", info.Main)
+	return info.Main
 }
 
 func downloadMod(endpoint, name string) {
 	printInfo("Fetch metadata...")
-	resp, err := http.Get(endpoint + "/mods/" + name)
+	main := infoRemoteMod(endpoint, name)
+	printInfo("Downloading...")
+	resp, err := http.Get(endpoint + "/mods/" + name + "/" + main)
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	info := modInfo{}
-	if err = json.Unmarshal(contents, &info); err != nil {
-		panic(err)
-	}
-	printPair("Main", info.Main)
-	printInfo("Downloading...")
-	target := "games/mods/" + info.Main
+	target := "games/mods/" + main
 	out, err := os.OpenFile(target+".tmp", os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
 		panic(err)
