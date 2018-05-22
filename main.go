@@ -158,6 +158,17 @@ func (c *updateCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	return subcommands.ExitSuccess
 }
 
+type versionCmd struct{}
+
+func (*versionCmd) Name() string             { return "version" }
+func (*versionCmd) Synopsis() string         { return "Show version" }
+func (*versionCmd) Usage() string            { return "version" }
+func (*versionCmd) SetFlags(f *flag.FlagSet) {}
+func (*versionCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	printPair("Version", VERSION)
+	return subcommands.ExitSuccess
+}
+
 func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
@@ -166,6 +177,7 @@ func main() {
 	subcommands.Register(&unpackCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&updateCmd{}, "")
+	subcommands.Register(&versionCmd{}, "")
 
 	flag.Parse()
 	ctx := context.Background()
