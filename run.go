@@ -57,7 +57,7 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(base string, datapath string) (*os.File, func()) {
+func runImpl(base string, datapath string, done chan struct{}) (*os.File, func()) {
 	abs, err := filepath.Abs(base)
 	if err != nil {
 		panic(err)
@@ -69,6 +69,10 @@ func runImpl(base string, datapath string) (*os.File, func()) {
 	if err != nil {
 		panic(err)
 	}
+	go func() {
+		cmd.Wait()
+		done <- struct{}{}
+	}()
 	return f, func() {
 		cmd.Process.Signal(os.Interrupt)
 		cmd.Wait()
@@ -82,7 +86,8 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 		return false
 	}
 	defer log.Close()
-	f, stop := runImpl(base, datapath)
+	proc := make(chan struct{}, 1)
+	f, stop := runImpl(base, datapath, proc)
 	defer f.Close()
 	defer stop()
 	username := "nobody"
@@ -144,27 +149,36 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 			}
 		}
 	})
-	for {
-		line, err := rl.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
+	rlock := make(chan struct{}, 1)
+	go func() {
+		for {
+			line, err := rl.Readline()
+			if err == readline.ErrInterrupt {
+				if len(line) == 0 {
+					break
+				} else {
+					continue
+				}
+			} else if err == io.EOF {
 				break
-			} else {
-				continue
 			}
-		} else if err == io.EOF {
-			break
+			line = strings.TrimSpace(line)
+			switch {
+			case strings.HasPrefix(line, ":restart"):
+				status = true
+				fallthrough
+			case strings.HasPrefix(line, ":quit"):
+				rlock <- struct{}{}
+				return
+			default:
+				cache++
+				execFn("console", line)
+			}
 		}
-		line = strings.TrimSpace(line)
-		switch {
-		case strings.HasPrefix(line, ":restart"):
-			return true
-		case strings.HasPrefix(line, ":quit"):
-			return status
-		default:
-			cache++
-			execFn("console", line)
-		}
+	}()
+	select {
+	case <-proc:
+	case <-rlock:
 	}
 	return status
 }
