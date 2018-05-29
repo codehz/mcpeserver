@@ -68,7 +68,7 @@ func runDaemon(base, datapath, logfile, socket string) {
 				delete(conns, c)
 			case text := <-publishes:
 				for conn := range conns {
-					go fmt.Fprintln(conn, text)
+					fmt.Fprintln(conn, text)
 				}
 			case <-done:
 				break outer
