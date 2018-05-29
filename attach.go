@@ -61,6 +61,7 @@ func attach(socket string, prompt *fasttemplate.Template) {
 				cache--
 			}
 		}
+		rl.Close()
 	}()
 	go func() {
 		for {

@@ -57,7 +57,7 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(base string, datapath string, done chan struct{}) (*os.File, func()) {
+func runImpl(base string, datapath string, done chan bool) (*os.File, func()) {
 	abs, err := filepath.Abs(base)
 	if err != nil {
 		panic(err)
@@ -69,13 +69,17 @@ func runImpl(base string, datapath string, done chan struct{}) (*os.File, func()
 	if err != nil {
 		panic(err)
 	}
+	status := true
+	selfLock := make(chan struct{}, 1)
 	go func() {
 		cmd.Wait()
-		done <- struct{}{}
+		selfLock <- struct{}{}
+		done <- status
 	}()
 	return f, func() {
+		status = false
 		cmd.Process.Signal(os.Interrupt)
-		cmd.Wait()
+		<-selfLock
 	}
 }
 
@@ -86,7 +90,7 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 		return false
 	}
 	defer log.Close()
-	proc := make(chan struct{}, 1)
+	proc := make(chan bool, 1)
 	f, stop := runImpl(base, datapath, proc)
 	defer f.Close()
 	defer stop()
@@ -149,38 +153,29 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 			}
 		}
 	})
-	rlock := make(chan struct{}, 1)
-	go func() {
-		for {
-			line, err := rl.Readline()
-			if err == readline.ErrInterrupt {
-				if len(line) == 0 {
-					break
-				} else {
-					continue
-				}
-			} else if err == io.EOF {
+	for {
+		line, err := rl.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
 				break
+			} else {
+				continue
 			}
-			line = strings.TrimSpace(line)
-			switch {
-			case strings.HasPrefix(line, ":restart"):
-				status = true
-				fallthrough
-			case strings.HasPrefix(line, ":quit"):
-				rlock <- struct{}{}
-				return
-			default:
-				cache++
-				execFn("console", line)
-			}
+		} else if err == io.EOF {
+			break
 		}
-	}()
-	select {
-	case <-proc:
-	case <-rlock:
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, ":restart"):
+			return true
+		case strings.HasPrefix(line, ":quit"):
+			return status
+		default:
+			cache++
+			execFn("console", line)
+		}
 	}
-	return status
+	return false
 }
 
 func prepare(data, link string) {

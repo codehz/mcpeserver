@@ -80,7 +80,7 @@ func runDaemon(base, datapath, logfile, socket string) {
 		publishes <- text
 	}
 	for func() bool {
-		proc := make(chan struct{}, 1)
+		proc := make(chan bool, 1)
 		f, quit := runImpl(base, datapath, proc)
 		defer f.Close()
 		defer quit()
@@ -115,8 +115,8 @@ func runDaemon(base, datapath, logfile, socket string) {
 				return x
 			case <-sigs:
 				return false
-			case <-proc:
-				return true
+			case x := <-proc:
+				return x
 			case line, ok := <-exec:
 				if ok {
 					cache++
