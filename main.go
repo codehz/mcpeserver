@@ -80,13 +80,11 @@ func (c *unpackCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 }
 
 type runCmd struct {
-	bin       string
-	data      string
-	link      string
-	prompt    string
-	websocket string
-	token     string
-	logfile   string
+	bin     string
+	data    string
+	link    string
+	prompt  string
+	logfile string
 }
 
 func (*runCmd) Name() string {
@@ -106,8 +104,6 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.bin, "bin", "bin", "Minecraft Server Binary Path")
 	f.StringVar(&c.link, "link", "games", "World Link Path")
 	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
-	f.StringVar(&c.websocket, "websocket", "", "WebSocket Server Port(Disabled If Blank)")
-	f.StringVar(&c.token, "token", "", "WebSocket Server Token(Random If Blank)")
 	f.StringVar(&c.logfile, "logfile", "games/mcpeserver.log", "Log File Path")
 }
 
@@ -122,7 +118,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	c.link, _ = filepath.Abs(c.link)
 	c.bin, _ = filepath.Abs(c.bin)
 	prepare(c.data, c.link)
-	for run(c.bin, c.data, c.logfile, fasttemplate.New(c.prompt, "{{", "}}"), c.websocket, c.token) {
+	for run(c.bin, c.data, c.logfile, fasttemplate.New(c.prompt, "{{", "}}")) {
 		printInfo("restarting...")
 	}
 	return subcommands.ExitSuccess

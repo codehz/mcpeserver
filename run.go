@@ -75,7 +75,7 @@ func runImpl(base string, datapath string) (*os.File, func()) {
 	}
 }
 
-func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws string, token string) bool {
+func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 	log, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		printWarn("Log File load failed")
@@ -85,10 +85,6 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws strin
 	f, stop := runImpl(base, datapath)
 	defer f.Close()
 	defer stop()
-	exec := make(chan string)
-	defer close(exec)
-	boardcast, stopWs := newWs(exec, ws, token)
-	defer stopWs()
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
@@ -122,9 +118,18 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws strin
 	})
 	defer rl.Close()
 	lw := io.MultiWriter(rl.Stdout(), log)
+	status := false
 	execFn := func(src, cmd string) {
 		fmt.Fprintf(f, "%s\n", cmd)
 		fmt.Fprintf(log, "%s>%s\n", src, cmd)
+		switch {
+		case strings.HasPrefix(cmd, ":restart"):
+			status = true
+			rl.Close()
+		case strings.HasPrefix(cmd, ":quit"):
+			status = true
+			rl.Close()
+		}
 	}
 	cache := 0
 	go packOutput(f, func(text string) {
@@ -133,24 +138,12 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws strin
 			cache++
 		} else {
 			if cache == 0 {
-				boardcast(text)
 				fmt.Fprintf(lw, "\033[0m%s\033[0m\n", replacer.Replace(text))
 			} else {
-				boardcast(fmt.Sprintf("input: %s", text))
 				cache--
 			}
 		}
 	})
-	go func() {
-		for {
-			cmd, ok := <-exec
-			if ok {
-				execFn("ws", cmd)
-			} else {
-				break
-			}
-		}
-	}()
 	for {
 		line, err := rl.Readline()
 		if err == readline.ErrInterrupt {
@@ -167,16 +160,16 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws strin
 		case strings.HasPrefix(line, ":restart"):
 			return true
 		case strings.HasPrefix(line, ":quit"):
-			return false
+			return status
 		default:
 			cache++
 			execFn("console", line)
 		}
 	}
-	return false
+	return status
 }
 
-func prepare(data string, link string) {
+func prepare(data, link string) {
 	games := filepath.Join(data, "games")
 	props := filepath.Join(data, "server.properties")
 	mods := filepath.Join(data, "mods")
