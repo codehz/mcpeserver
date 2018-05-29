@@ -79,6 +79,30 @@ func (c *unpackCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	return subcommands.ExitSuccess
 }
 
+type attachCmd struct {
+	socket string
+	prompt string
+}
+
+func (*attachCmd) Name() string     { return "attach" }
+func (*attachCmd) Synopsis() string { return "attach daemon" }
+func (*attachCmd) Usage() string    { return "attach [-socket] [-prompt]" }
+func (a *attachCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&a.socket, "socket", "games/mcpeserver.sock", "Socket File")
+	f.StringVar(&a.prompt, "prompt", "{{esc}}[0;36;1msocket:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
+}
+func (a *attachCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\033[5;91mError: \n", r)
+			ret = subcommands.ExitFailure
+		}
+	}()
+	a.socket, _ = filepath.Abs(a.socket)
+	attach(a.socket, fasttemplate.New(a.prompt, "{{", "}}"))
+	return subcommands.ExitSuccess
+}
+
 type runCmd struct {
 	bin     string
 	data    string
@@ -245,6 +269,7 @@ func main() {
 	subcommands.Register(subcommands.CommandsCommand(), "")
 	subcommands.Register(&downloadCmd{}, "")
 	subcommands.Register(&unpackCmd{}, "")
+	subcommands.Register(&attachCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&daemonCmd{}, "")
 	subcommands.Register(&updateCmd{}, "")
