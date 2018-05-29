@@ -159,6 +159,41 @@ func (c *modsCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 	return subcommands.ExitSuccess
 }
 
+type daemonCmd struct {
+	bin     string
+	data    string
+	link    string
+	logfile string
+	socket  string
+}
+
+func (*daemonCmd) Name() string     { return "daemon" }
+func (*daemonCmd) Synopsis() string { return "Daemon" }
+func (*daemonCmd) Usage() string {
+	return "daemon [-bin] [-data] [-link] [-daemon]\n\tRun server as daemon"
+}
+func (d *daemonCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&d.data, "data", "data", "Minecraft Data Directory")
+	f.StringVar(&d.bin, "bin", "bin", "Minecraft Server Binary Path")
+	f.StringVar(&d.link, "link", "games", "World Link Path")
+	f.StringVar(&d.logfile, "logfile", "games/mcpeserver.log", "Log File Path")
+	f.StringVar(&d.socket, "socket", "games/mcpeserver.sock", "Socket File Path")
+}
+func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\033[5;91mError: \n", r)
+			ret = subcommands.ExitFailure
+		}
+	}()
+	d.data, _ = filepath.Abs(d.data)
+	d.link, _ = filepath.Abs(d.link)
+	d.bin, _ = filepath.Abs(d.bin)
+	prepare(d.data, d.link)
+	runDaemon(d.bin, d.data, d.logfile, d.socket)
+	return subcommands.ExitSuccess
+}
+
 type updateCmd struct {
 	path string
 }
@@ -211,6 +246,7 @@ func main() {
 	subcommands.Register(&downloadCmd{}, "")
 	subcommands.Register(&unpackCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
+	subcommands.Register(&daemonCmd{}, "")
 	subcommands.Register(&updateCmd{}, "")
 	subcommands.Register(&modsCmd{}, "")
 	subcommands.Register(&versionCmd{}, "")
