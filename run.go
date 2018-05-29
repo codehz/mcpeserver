@@ -75,7 +75,13 @@ func runImpl(base string, datapath string) (*os.File, func()) {
 	}
 }
 
-func run(base string, datapath string, prompt *fasttemplate.Template, ws string, token string) {
+func run(base, datapath, logfile string, prompt *fasttemplate.Template, ws string, token string) bool {
+	log, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		printWarn("Log File load failed")
+		return false
+	}
+	defer log.Close()
 	f, stop := runImpl(base, datapath)
 	defer f.Close()
 	defer stop()
@@ -115,11 +121,16 @@ func run(base string, datapath string, prompt *fasttemplate.Template, ws string,
 		},
 	})
 	defer rl.Close()
-	lw := rl.Stdout()
+	lw := io.MultiWriter(rl.Stdout(), log)
+	execFn := func(src, cmd string) {
+		fmt.Fprintf(f, "%s\n", cmd)
+		fmt.Fprintf(log, "%s>%s\n", src, cmd)
+	}
 	cache := 0
 	go packOutput(f, func(text string) {
 		if strings.HasPrefix(text, "\x07") {
-			fmt.Fprintf(f, "%s\n", text[1:len(text)-1])
+			execFn("mod", text[1:len(text)-1])
+			cache++
 		} else {
 			if cache == 0 {
 				boardcast(text)
@@ -134,7 +145,7 @@ func run(base string, datapath string, prompt *fasttemplate.Template, ws string,
 		for {
 			cmd, ok := <-exec
 			if ok {
-				fmt.Fprintf(f, "%s\n", cmd)
+				execFn("ws", cmd)
 			} else {
 				break
 			}
@@ -153,11 +164,16 @@ func run(base string, datapath string, prompt *fasttemplate.Template, ws string,
 		}
 		line = strings.TrimSpace(line)
 		switch {
+		case strings.HasPrefix(line, ":restart"):
+			return true
+		case strings.HasPrefix(line, ":quit"):
+			return false
 		default:
 			cache++
-			fmt.Fprintf(f, "%s\n", line)
+			execFn("console", line)
 		}
 	}
+	return false
 }
 
 func prepare(data string, link string) {
