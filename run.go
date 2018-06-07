@@ -197,7 +197,7 @@ func prepare(data, link string) {
 		}
 	}
 	os.RemoveAll(games)
-        os.Symlink("../games", games)
-        os.Symlink("../games/server.properties", props)
-        os.Symlink("../games/mods", mods)
+	os.Symlink("../games", games)
+	os.Symlink("../games/server.properties", props)
+	os.Symlink("../games/mods", mods)
 }
