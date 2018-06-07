@@ -184,8 +184,6 @@ func prepare(data, link string) {
 	mods := filepath.Join(data, "mods")
 	linkProps := filepath.Join(link, "server.properties")
 	linkMods := filepath.Join(link, "mods")
-	gamesProps := filepath.Join(games, "server.properties")
-	gamesMods := filepath.Join(games, "mods")
 	os.MkdirAll(link, os.ModePerm)
 	os.MkdirAll(linkMods, os.ModePerm)
 	if _, err := os.Stat(linkProps); os.IsNotExist(err) {
@@ -199,7 +197,7 @@ func prepare(data, link string) {
 		}
 	}
 	os.RemoveAll(games)
-	os.Symlink(link, games)
-	os.Symlink(gamesProps, props)
-	os.Symlink(gamesMods, mods)
+	os.Symlink("../games", games)
+	os.Symlink("../games/server.properties", props)
+	os.Symlink("../games/mods", mods)
 }
