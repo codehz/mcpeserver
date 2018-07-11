@@ -1,8 +1,9 @@
 #!/bin/bash
-[ ! -e ./games/mcpeserver.sock ] && (./mcpeserver daemon &) &
-while [ ! -e ./games/mcpeserver.sock ]
+profile=${1:-default}
+[ ! -e ./$profile.sock ] && nohup ./mcpeserver daemon -profile $profile >/dev/null 2>&1 &
+while [ ! -e ./$profile.sock ]
 do
   sleep 1
 done
-tail ./games/mcpeserver.log
+tail ./$profile.log
 ./mcpeserver attach

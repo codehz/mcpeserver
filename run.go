@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"path/filepath"
 	"strings"
 
 	"github.com/chzyer/readline"
@@ -57,14 +56,10 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(base string, datapath string, done chan bool) (*os.File, func()) {
-	abs, err := filepath.Abs(base)
-	if err != nil {
-		panic(err)
-	}
-	cmd := exec.Command(filepath.Join(abs, "server"))
-	cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s", abs))
-	cmd.Dir = datapath
+func runImpl(datapath string, done chan bool) (*os.File, func()) {
+	cmd := exec.Command("./bedrockserver")
+	cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH=.")
+	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)
@@ -83,19 +78,19 @@ func runImpl(base string, datapath string, done chan bool) (*os.File, func()) {
 	}
 }
 
-func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
-	log, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func run(datapath, profile string, prompt *fasttemplate.Template) bool {
+	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		printWarn("Log File load failed")
 		return false
 	}
 	defer log.Close()
 	proc := make(chan bool, 1)
-	f, stop := runImpl(base, datapath, proc)
+	f, stop := runImpl(datapath, proc)
 	defer f.Close()
 	defer stop()
 	username := "nobody"
-	hostname := "mcpeserver"
+	hostname := "bedrockserver"
 	{
 		u, err := user.Current()
 		if err == nil {
@@ -176,28 +171,4 @@ func run(base, datapath, logfile string, prompt *fasttemplate.Template) bool {
 		}
 	}
 	return false
-}
-
-func prepare(data, link string) {
-	games := filepath.Join(data, "games")
-	props := filepath.Join(data, "server.properties")
-	mods := filepath.Join(data, "mods")
-	linkProps := filepath.Join(link, "server.properties")
-	linkMods := filepath.Join(link, "mods")
-	os.MkdirAll(link, os.ModePerm)
-	os.MkdirAll(linkMods, os.ModePerm)
-	if _, err := os.Stat(linkProps); os.IsNotExist(err) {
-		f, err := os.OpenFile(linkProps, os.O_RDWR|os.O_CREATE, os.ModePerm)
-		fmt.Fprintln(f, "motd=Minecraft Server\nlevel-dir=world\nlevel-name=Default Server World")
-		if err != nil {
-			panic(err)
-		}
-		if err = f.Close(); err != nil {
-			panic(err)
-		}
-	}
-	os.RemoveAll(games)
-	os.Symlink("../games", games)
-	os.Symlink("../games/server.properties", props)
-	os.Symlink("../games/mods", mods)
 }

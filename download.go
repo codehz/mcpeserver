@@ -24,7 +24,7 @@ type manifest struct {
 }
 
 func auth() string {
-	resp, err := http.Get("https://auth.docker.io/token?service=registry.docker.io&scope=repository:codehz/mcpe-server:pull")
+	resp, err := http.Get("https://auth.docker.io/token?service=registry.docker.io&scope=repository:codehz/bedrockserver:pull")
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +60,7 @@ func fetch(url string, token string) []byte {
 }
 
 func getLayer(registry string, token string) string {
-	contents := fetch(registry+"/codehz/mcpe-server/manifests/latest", token)
+	contents := fetch(registry+"/codehz/bedrockserver/manifests/latest", token)
 	info := manifest{}
 	if err := json.Unmarshal(contents, &info); err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func download(registry string, token string, blob string, target string) {
 	}
 	defer out.Close()
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", registry+"/codehz/mcpe-server/blobs/"+blob, nil)
+	req, err := http.NewRequest("GET", registry+"/codehz/bedrockserver/blobs/"+blob, nil)
 	if err != nil {
 		panic(err)
 	}

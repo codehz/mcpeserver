@@ -14,8 +14,8 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-func extractFile(base string) {
-	f, err := os.Open(base + ".tar.gz")
+func extractFile() {
+	f, err := os.Open("bin.tar.gz")
 	if err != nil {
 		panic(err)
 	}
@@ -25,10 +25,6 @@ func extractFile(base string) {
 		panic(err)
 	}
 	tarReader := tar.NewReader(gzf)
-	err = os.MkdirAll(base, os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -38,7 +34,7 @@ func extractFile(base string) {
 			panic(err)
 		}
 		filename := header.Name
-		target, err := os.OpenFile(filepath.Join(base, filename), os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		target, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 		if err != nil {
 			panic(err)
 		}
@@ -55,18 +51,19 @@ func extractFile(base string) {
 	}
 }
 
-func handleDownload(registry string, base string, force bool) {
+func handleDownload(registry string, force bool) {
 	printInfo("Authorizing...")
 	token := auth()
 	printPair("Token", token)
 	printInfo("Fetching...")
 	blob := getLayer(registry, token)
 	printPair("Blob", blob)
-	if checkVersion(base+".version", []byte(blob)) || force {
+	if checkVersion(".version", []byte(blob)) || force {
 		printInfo("Download Binary...\033[0;31m")
-		download(registry, token, blob, base+".tar.gz")
+		download(registry, token, blob, "bin.tar.gz")
 		fmt.Print("\033[0;31m")
-		extractFile(base)
+		extractFile()
+		fmt.Print("\033[0m")
 	} else {
 		printWarn("Version Matched, Skipped Download.")
 	}

@@ -10,8 +10,8 @@ import (
 	"syscall"
 )
 
-func runDaemon(base, datapath, logfile, socket string) {
-	log, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func runDaemon(datapath, profile string) {
+	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -21,12 +21,12 @@ func runDaemon(base, datapath, logfile, socket string) {
 	sigs := make(chan os.Signal, 1)
 	defer close(sigs)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	l, err := net.Listen("unix", socket)
+	l, err := net.Listen("unix", profile+".sock")
 	if err != nil {
 		panic(err)
 	}
 	defer l.Close()
-	defer os.Remove(socket)
+	defer os.Remove(profile + ".sock")
 	exec := make(chan string)
 	defer close(exec)
 	conns := make(map[net.Conn]bool)
@@ -81,7 +81,7 @@ func runDaemon(base, datapath, logfile, socket string) {
 	}
 	for func() bool {
 		proc := make(chan bool, 1)
-		f, quit := runImpl(base, datapath, proc)
+		f, quit := runImpl(datapath, proc)
 		defer f.Close()
 		defer quit()
 		status := make(chan bool)
