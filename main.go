@@ -186,7 +186,7 @@ func (*daemonCmd) Usage() string {
 }
 func (d *daemonCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&d.data, "data", "data", "Minecraft Data Directory")
-	f.StringVar(&d.profile, "profile", "profile", "Game Profile")
+	f.StringVar(&d.profile, "profile", "default", "Game Profile")
 }
 func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
 	defer func() {
