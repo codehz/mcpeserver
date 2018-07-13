@@ -13,4 +13,4 @@ jobs:
       - run: go get github.com/kr/pty
       - run: make
       - store_artifacts:
-        path: /build/mcpeserver
+          path: /build/mcpeserver
