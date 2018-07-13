@@ -4,6 +4,9 @@ jobs:
     docker:
       - image: codehz/circleci-golang-upx:latest
     working_directory: /go/src/github.com/codehz/mcpeserver
+    branches:
+      only:
+        - master
     steps:
       - checkout
       - run:
