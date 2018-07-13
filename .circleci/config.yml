@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: codehz/circleci-golang-upx:latest
+    working_directory: /build
+    steps:
+      - checkout
+      - run: go get gopkg.in/cheggaaa/pb.v1
+      - run: go get github.com/chzyer/readline
+      - run: go get github.com/valyala/fasttemplate
+      - run: go get github.com/google/subcommands
+      - run: go get github.com/kr/pty
+      - run: make
+      - store_artifacts:
+        path: /build/mcpeserver
