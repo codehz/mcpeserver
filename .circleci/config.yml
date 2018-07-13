@@ -6,11 +6,15 @@ jobs:
     working_directory: /go/src/github.com/codehz/mcpeserver
     steps:
       - checkout
-      - run: go get gopkg.in/cheggaaa/pb.v1
-      - run: go get github.com/chzyer/readline
-      - run: go get github.com/valyala/fasttemplate
-      - run: go get github.com/google/subcommands
-      - run: go get github.com/kr/pty
+      - run:
+          name: Install dependencies
+          command: |
+            go get gopkg.in/cheggaaa/pb.v1
+            go get github.com/chzyer/readline
+            go get github.com/valyala/fasttemplate
+            go get github.com/google/subcommands
+            go get github.com/kr/pty
+            go get github.com/pwaller/goupx
       - run: make
 
       - store_artifacts:
