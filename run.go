@@ -57,7 +57,7 @@ func packOutput(input io.Reader, output func(string)) {
 }
 
 func runImpl(datapath string, done chan bool) (*os.File, func()) {
-	cmd := exec.Command("./bedrockserver")
+	cmd := exec.Command("./bin/bedrockserver")
 	cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH=.")
 	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)

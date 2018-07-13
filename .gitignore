@@ -2,7 +2,7 @@
 .version
 bedrockserver
 bridge.so
-bin.tar.gz
+bin*
 *.log
 data
 games
