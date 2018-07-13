@@ -3,6 +3,8 @@ Minecraft Server Launcher
 
 A Minecraft Server Launcher Written by Golang.
 
+[![CircleCI](https://circleci.com/gh/codehz/mcpeserver/tree/master.svg?style=svg)](https://circleci.com/gh/codehz/mcpeserver/tree/master)
+
 Powered By [MCMrARM/mcpelauncher-linux](https://github.com/MCMrARM/mcpelauncher-linux).
 
 ## Usage
@@ -22,7 +24,6 @@ More document can be found in [wiki](https://github.com/codehz/mcpeserver/wiki)
 ## Features
 
 * Auto Complete For Command
-* WebSocket-based management interface
 
 ## LICENSE
 
