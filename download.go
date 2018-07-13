@@ -1,13 +1,16 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"time"
 
 	"gopkg.in/cheggaaa/pb.v1"
@@ -112,4 +115,60 @@ func checkVersion(filepath string, blob []byte) bool {
 		panic(err)
 	}
 	return true
+}
+
+func extractFile() {
+	f, err := os.Open("bin.tar.gz")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		panic(err)
+	}
+	tarReader := tar.NewReader(gzf)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		filename := header.Name
+		target, err := os.OpenFile(path.Join("bin", filename), os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		if err != nil {
+			panic(err)
+		}
+		bar := pb.StartNew(int(header.Size))
+		bar.SetUnits(pb.U_BYTES_DEC)
+		bar.SetRefreshRate(time.Millisecond * 20)
+		bar.Start()
+		bar.Prefix(fmt.Sprintf("%-20s", filename))
+		_, err = io.Copy(target, bar.NewProxyReader(tarReader))
+		if err != nil {
+			panic(err)
+		}
+		bar.Finish()
+	}
+}
+
+func handleDownload(registry string, force bool) {
+	printInfo("Authorizing...")
+	token := auth()
+	printPair("Token", token)
+	printInfo("Fetching...")
+	blob := getLayer(registry, token)
+	printPair("Blob", blob)
+	if checkVersion(".version", []byte(blob)) || force {
+		printInfo("Download Binary...\033[0;31m")
+		download(registry, token, blob, "bin.tar.gz")
+		fmt.Print("\033[0;31m")
+		os.MkdirAll("bin", 0755)
+		extractFile()
+		fmt.Print("\033[0m")
+	} else {
+		printWarn("Version Matched, Skipped Download.")
+	}
 }

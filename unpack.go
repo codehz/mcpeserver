@@ -1,9 +1,7 @@
 package main
 
 import (
-	"archive/tar"
 	"archive/zip"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -14,68 +12,13 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-func extractFile() {
-	f, err := os.Open("bin.tar.gz")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	gzf, err := gzip.NewReader(f)
-	if err != nil {
-		panic(err)
-	}
-	tarReader := tar.NewReader(gzf)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		filename := header.Name
-		target, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-		if err != nil {
-			panic(err)
-		}
-		bar := pb.StartNew(int(header.Size))
-		bar.SetUnits(pb.U_BYTES_DEC)
-		bar.SetRefreshRate(time.Millisecond * 20)
-		bar.Start()
-		bar.Prefix(fmt.Sprintf("%-20s", filename))
-		_, err = io.Copy(target, bar.NewProxyReader(tarReader))
-		if err != nil {
-			panic(err)
-		}
-		bar.Finish()
-	}
-}
-
-func handleDownload(registry string, force bool) {
-	printInfo("Authorizing...")
-	token := auth()
-	printPair("Token", token)
-	printInfo("Fetching...")
-	blob := getLayer(registry, token)
-	printPair("Blob", blob)
-	if checkVersion(".version", []byte(blob)) || force {
-		printInfo("Download Binary...\033[0;31m")
-		download(registry, token, blob, "bin.tar.gz")
-		fmt.Print("\033[0;31m")
-		extractFile()
-		fmt.Print("\033[0m")
-	} else {
-		printWarn("Version Matched, Skipped Download.")
-	}
-}
-
 func unpack(base string, file string) {
 	r, err := zip.OpenReader(file)
 	if err != nil {
 		panic(err)
 	}
 	defer r.Close()
-	os.MkdirAll(base, os.ModePerm)
+	os.MkdirAll(base, 0755)
 	count := 0
 	skip := 0
 	for _, f := range r.File {
@@ -103,7 +46,7 @@ func unpack(base string, file string) {
 		}
 		count++
 		fmt.Printf("\033[0;92m[%4d|%4d skiped]extracting: %s\033[0;31m", count, skip, targetName)
-		err = os.MkdirAll(filepath.Dir(filepath.Join(base, targetName)), os.ModePerm)
+		err = os.MkdirAll(filepath.Dir(filepath.Join(base, targetName)), 0755)
 		if err != nil {
 			panic(err)
 		}
