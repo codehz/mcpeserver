@@ -16,3 +16,4 @@ mcpeserver
 worlds
 user
 *.out
+*.db

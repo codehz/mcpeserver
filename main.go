@@ -11,39 +11,6 @@ import (
 	"github.com/valyala/fasttemplate"
 )
 
-type downloadCmd struct {
-	registry string
-	force    bool
-}
-
-func (*downloadCmd) Name() string {
-	return "download"
-}
-
-func (*downloadCmd) Synopsis() string {
-	return "download minecraft server binary."
-}
-
-func (*downloadCmd) Usage() string {
-	return "download [-registry] [-force]\n\tDownload Minecraft Server Binary\n"
-}
-
-func (c *downloadCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.registry, "registry", "https://registry-1.docker.io/v2/", "Docker Registry Endpoint")
-	f.BoolVar(&c.force, "force", false, "Force Download")
-}
-
-func (c *downloadCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("\033[5;91mError: ", r)
-			ret = subcommands.ExitFailure
-		}
-	}()
-	handleDownload(c.registry, c.force)
-	return subcommands.ExitSuccess
-}
-
 type unpackCmd struct {
 	data string
 	apk  string
@@ -125,6 +92,18 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
 }
 
+func checkBin() {
+	if _, err := os.Stat("./bin"); err != nil {
+		printWarn("bin folder is not exists, checking /opt/mcpeserver-core...")
+		if _, err = os.Stat("/opt/mcpeserver-core"); err != nil {
+			printWarn("/opt/mcpeserver-core is also not exists, exiting...")
+			os.Exit(1)
+		} else {
+			os.Symlink("/opt/mcpeserver-core", "bin")
+		}
+	}
+}
+
 func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -132,6 +111,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 			ret = subcommands.ExitFailure
 		}
 	}()
+	checkBin()
 	c.data, _ = filepath.Abs(c.data)
 	for run(c.data, c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
 		printInfo("restarting...")
@@ -195,6 +175,7 @@ func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			ret = subcommands.ExitFailure
 		}
 	}()
+	checkBin()
 	d.data, _ = filepath.Abs(d.data)
 	runDaemon(d.data, d.profile)
 	return subcommands.ExitSuccess
@@ -249,7 +230,6 @@ func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
-	subcommands.Register(&downloadCmd{}, "")
 	subcommands.Register(&unpackCmd{}, "")
 	subcommands.Register(&attachCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
