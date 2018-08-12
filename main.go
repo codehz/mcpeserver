@@ -94,9 +94,9 @@ func (c *runCmd) SetFlags(f *flag.FlagSet) {
 
 func checkBin() {
 	if _, err := os.Stat("./bin"); err != nil {
-		printWarn("bin folder is not exists, checking /opt/mcpeserver-core...")
+		printWarn("/bin not found, checking /opt/mcpeserver-core...")
 		if _, err = os.Stat("/opt/mcpeserver-core"); err != nil {
-			printWarn("/opt/mcpeserver-core is also not exists, exiting...")
+			printWarn("/opt/mcpeserver-core not found, exiting...")
 			os.Exit(1)
 		} else {
 			os.Symlink("/opt/mcpeserver-core", "bin")
@@ -131,7 +131,7 @@ func (*modsCmd) Synopsis() string { return "Mods Management" }
 func (*modsCmd) Usage() string    { return "mods [--endpoint] [--info] [--remote] [--download]\n" }
 func (c *modsCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.endpoint, "endpoint", "https://mcpe.codehz.one/", "Mods Repo Endpoint")
-	f.StringVar(&c.info, "info", "", "Display a Remote Mods' info")
+	f.StringVar(&c.info, "info", "", "Display a Remote Mod' info")
 	f.BoolVar(&c.remote, "remote", false, "List Remote Mods")
 	f.StringVar(&c.download, "download", "", "Download Mod")
 }
@@ -190,7 +190,7 @@ func (*updateCmd) Name() string {
 }
 
 func (*updateCmd) Synopsis() string {
-	return "Update Self"
+	return "Self-Update"
 }
 
 func (*updateCmd) Usage() string {
