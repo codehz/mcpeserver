@@ -22,10 +22,10 @@ wget $(curl -s https://api.github.com/repos/codehz/mcpeserver/releases/latest|jq
 chmod +x  mcpeserver
 ./mcpeserver download # download the core binary for minecraft server
 ./mcpeserver unpack -apk XXX.apk # unpack assets from minecraft x86 apk
-./mcpeserver run # running!
+./mcpeserver run # run the server!
 ```
 
-Before actually running the server, you might want to edit the server configuration file first.
+You might want to edit the server configuration file before actually running the server.
 
 Server configuration file is located in /games/server.properties for release versions, or /default.cfg for pre-release versions.
 
