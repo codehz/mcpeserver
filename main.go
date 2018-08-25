@@ -63,8 +63,7 @@ func (a *attachCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			ret = subcommands.ExitFailure
 		}
 	}()
-	var socket, _ = filepath.Abs(a.profile + ".sock")
-	attach(socket, fasttemplate.New(a.prompt, "{{", "}}"))
+	attach(a.profile, fasttemplate.New(a.prompt, "{{", "}}"))
 	return subcommands.ExitSuccess
 }
 

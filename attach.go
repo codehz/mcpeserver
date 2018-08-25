@@ -1,23 +1,29 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"net"
 	"os"
 	"os/user"
 	"strings"
-	"time"
 
 	"github.com/chzyer/readline"
+	"github.com/godbus/dbus"
 	"github.com/valyala/fasttemplate"
 )
 
-func attach(socket string, prompt *fasttemplate.Template) {
-	c, err := net.Dial("unix", socket)
+func attach(profile string, prompt *fasttemplate.Template) {
+	conn, err := dbus.SessionBus()
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
+		os.Exit(1)
 	}
+	defer conn.Close()
+	conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0,
+		fmt.Sprintf("type='signal',path='/',interface='bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
+	dbusLog := make(chan *dbus.Signal, 10)
+	conn.Signal(dbusLog)
+	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/")
+
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
@@ -39,7 +45,7 @@ func attach(socket string, prompt *fasttemplate.Template) {
 		HistoryFile:     ".readline-history",
 		AutoComplete:    completer,
 		InterruptPrompt: "^C",
-		EOFPrompt:       "quit",
+		EOFPrompt:       ":detach",
 
 		HistorySearchFold: true,
 		FuncFilterInputRune: func(r rune) (rune, bool) {
@@ -49,28 +55,17 @@ func attach(socket string, prompt *fasttemplate.Template) {
 			return r, true
 		},
 	})
-	// lw := rl.Stdout()
-	cache := 0
-	buffer := make(chan string, 512)
+	lw := rl.Stdout()
+	queue := make(map[uint32]bool)
 	go func() {
-		bs := bufio.NewScanner(c)
-		for bs.Scan() {
-			if cache == 0 {
-				buffer <- bs.Text()
-			} else {
-				cache--
+		for v := range dbusLog {
+			if v.Name == "bedrockserver.core.log" {
+				fmt.Fprintf(lw, "\033[0m%s [%v] %v\033[0m\n", table[v.Body[0].(uint8)], v.Body[1], v.Body[2])
+			} else if v.Name == "bedrockserver.core.exec_result" {
+				if _, ok := queue[v.Body[0].(uint32)]; ok {
+					fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(v.Body[1].(string)))
+				}
 			}
-		}
-		rl.Close()
-	}()
-	go func() {
-		for {
-			line, ok := <-buffer
-			if !ok {
-				break
-			}
-			fmt.Fprintln(rl, line)
-			time.Sleep(time.Millisecond * 10)
 		}
 	}()
 	for {
@@ -78,8 +73,21 @@ func attach(socket string, prompt *fasttemplate.Template) {
 		if err != nil {
 			break
 		}
-		line = strings.TrimSpace(line)
-		fmt.Fprintln(c, line)
-		cache++
+		ncmd := strings.TrimSpace(line)
+		if len(ncmd) == 0 {
+			continue
+		} else if ncmd == ":detach" {
+			break
+		} else if strings.HasPrefix(ncmd, ":") {
+			fmt.Fprintln(lw, "\033[0mPlease use systemctl to control service.\033[0m")
+			continue
+		}
+		var rid uint32
+		err = dbusObj.Call("bedrockserver.core.exec", 0, ncmd).Store(&rid)
+		if err != nil {
+			fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
+		} else {
+			queue[rid] = true
+		}
 	}
 }

@@ -1,133 +1,66 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"net"
+	"io"
+	"io/ioutil"
 	"os"
-	"os/signal"
-	"strings"
-	"syscall"
+
+	"github.com/coreos/go-systemd/daemon"
+	"github.com/coreos/go-systemd/journal"
+	"github.com/coreos/go-systemd/util"
+	"github.com/godbus/dbus"
 )
 
+var priMap = []journal.Priority{
+	journal.PriDebug,
+	journal.PriDebug,
+	journal.PriInfo,
+	journal.PriNotice,
+	journal.PriWarning,
+	journal.PriErr,
+	journal.PriEmerg,
+}
+
 func runDaemon(datapath, profile string) {
-	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
+	fromSystemd, err := util.RunningFromSystemService()
+	if !fromSystemd || err != nil {
+		printWarn("Please run daemon via systemd unit!")
+		os.Exit(1)
 	}
-	defer log.Close()
-	fmt.Fprintln(log, "Starting...")
-	defer fmt.Fprintln(log, "Stopping...")
-	sigs := make(chan os.Signal, 1)
-	defer close(sigs)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	l, err := net.Listen("unix", profile+".sock")
+
+	conn, err := dbus.SessionBus()
 	if err != nil {
-		panic(err)
+		printWarn("Failed to connect to session bus:" + err.Error())
+		os.Exit(1)
 	}
-	defer l.Close()
-	defer os.Remove(profile + ".sock")
-	exec := make(chan string)
-	defer close(exec)
-	conns := make(map[net.Conn]bool)
-	newConns := make(chan net.Conn, 128)
-	deadConns := make(chan net.Conn, 128)
-	publishes := make(chan string, 128)
-	done := make(chan struct{}, 1)
-	defer func() {
-		done <- struct{}{}
-	}()
+	defer conn.Close()
+	dbusLog := make(chan *dbus.Signal, 10)
+	conn.Signal(dbusLog)
+
+	proc := make(chan bool, 1)
+	f, stop := runImpl(datapath, proc)
+	defer f.Close()
+	defer stop()
+
 	go func() {
 		for {
-			c, err := l.Accept()
+			_, err := io.CopyN(ioutil.Discard, f, 1)
 			if err != nil {
-				break
-			}
-			newConns <- c
-		}
-	}()
-	go func() {
-		defer close(newConns)
-		defer close(deadConns)
-		defer close(publishes)
-		defer close(done)
-	outer:
-		for {
-			select {
-			case c := <-newConns:
-				conns[c] = true
-				go func() {
-					bs := bufio.NewScanner(c)
-					for bs.Scan() {
-						exec <- bs.Text()
-					}
-					deadConns <- c
-				}()
-			case c := <-deadConns:
-				_ = c.Close()
-				delete(conns, c)
-			case text := <-publishes:
-				for conn := range conns {
-					fmt.Fprintln(conn, text)
-				}
-			case <-done:
-				break outer
+				return
 			}
 		}
 	}()
-	doLog := func(text string) {
-		fmt.Fprintf(log, "%s\n", text)
-		publishes <- text
-	}
-	for func() bool {
-		proc := make(chan bool, 1)
-		f, quit := runImpl(datapath, proc)
-		defer f.Close()
-		defer quit()
-		status := make(chan bool)
-		defer close(status)
-		execFn := func(src, cmd string) {
-			fmt.Fprintf(f, "%s\n", cmd)
-			doLog(fmt.Sprintf("%s>%s", src, cmd))
-			switch {
-			case strings.HasPrefix(cmd, ":restart"):
-				status <- true
-			case strings.HasPrefix(cmd, ":quit"):
-				status <- false
+
+	daemon.SdNotify(false, daemon.SdNotifyReady)
+
+	for {
+		select {
+		case <-proc:
+			break
+		case v := <-dbusLog:
+			if v.Name == "bedrockserver.core.log" {
+				journal.Print(priMap[v.Body[0].(uint8)], "[%s] %s", v.Body[1], v.Body[2])
 			}
 		}
-		cache := 0
-		go packOutput(f, func(text string) {
-			if strings.HasPrefix(text, "\x07") {
-				execFn("mod", text[1:len(text)-1])
-				cache++
-			} else {
-				if cache == 0 {
-					doLog(fmt.Sprintf("\033[0m%s\033[0m", replacer.Replace(text)))
-				} else {
-					cache--
-				}
-			}
-		})
-		for {
-			select {
-			case x := <-status:
-				return x
-			case <-sigs:
-				return false
-			case x := <-proc:
-				return x
-			case line, ok := <-exec:
-				if ok {
-					cache++
-					go execFn("socket", line)
-				} else {
-					return false
-				}
-			}
-		}
-	}() {
-		doLog("Restarting...")
 	}
-	return
 }

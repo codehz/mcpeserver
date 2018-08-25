@@ -15,6 +15,7 @@ jobs:
             go get github.com/google/subcommands
             go get github.com/kr/pty
             go get github.com/pwaller/goupx
+            go get github.com/godbus/dbus
       - run: make
 
       - store_artifacts:
