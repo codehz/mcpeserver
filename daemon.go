@@ -7,7 +7,6 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/coreos/go-systemd/journal"
-	"github.com/coreos/go-systemd/util"
 	"github.com/godbus/dbus"
 )
 
@@ -22,12 +21,6 @@ var priMap = []journal.Priority{
 }
 
 func runDaemon(datapath, profile string) {
-	_, err := util.CurrentUnitName()
-	if err != nil {
-		printWarn("Please run daemon via systemd unit!")
-		os.Exit(1)
-	}
-
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		printWarn("Failed to connect to session bus:" + err.Error())
