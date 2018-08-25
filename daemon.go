@@ -22,8 +22,8 @@ var priMap = []journal.Priority{
 }
 
 func runDaemon(datapath, profile string) {
-	fromSystemd, err := util.RunningFromSystemService()
-	if !fromSystemd || err != nil {
+	_, err := util.CurrentUnitName()
+	if err != nil {
 		printWarn("Please run daemon via systemd unit!")
 		os.Exit(1)
 	}
