@@ -23,6 +23,8 @@ jobs:
 
       - store_artifacts:
           path: /go/src/github.com/codehz/mcpeserver/mcpeserver
+      - store_artifacts:
+          path: /go/src/github.com/codehz/mcpeserver/install
 
 workflows:
   version: 2

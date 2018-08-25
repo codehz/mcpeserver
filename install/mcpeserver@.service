@@ -1,0 +1,17 @@
+[Unit]
+Description=Minecraft Bedrock Edition Server
+Documentation=https://github.com/codehz/mcpeserver
+After=network.target
+
+[Service]
+User=mcpeserver
+Group=mcpeserver
+WorkingDirectory=/srv/mcpeserver
+ExecStart=/usr/bin/mcpeserver daemon -profile %i
+Type=dbus
+BusName=one.codehz.bedrockserver.%i
+Restart=on-failure
+TimeoutSec=10
+
+[Install]
+WantedBy=multi-user.target
