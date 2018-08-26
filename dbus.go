@@ -36,3 +36,9 @@ func (b bus) exec(cmd string) (uint32, error) {
 	err := b.obj.Call("one.codehz.bedrockserver.core.exec", 0, cmd).Store(&rid)
 	return rid, err
 }
+
+func (b bus) ping() (string, error) {
+	var result string
+	err := b.obj.Call("one.codehz.bedrockserver.core.ping", 0).Store(&result)
+	return result, err
+}

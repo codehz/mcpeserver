@@ -15,6 +15,13 @@ func attach(profile string, prompt *fasttemplate.Template) {
 	bus.init(profile)
 	defer bus.close()
 
+	v, err := bus.ping()
+	if err != nil {
+		printWarn("Service is not running")
+		os.Exit(1)
+	}
+	printPair("Service Version", v)
+
 	username := "nobody"
 	hostname := "mcpeserver"
 	{
