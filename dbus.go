@@ -42,3 +42,7 @@ func (b bus) ping() (string, error) {
 	err := b.obj.Call("one.codehz.bedrockserver.core.ping", 0).Store(&result)
 	return result, err
 }
+
+func (b bus) stop() error {
+	return b.obj.Call("one.codehz.bedrockserver.core.stop", 0).Err
+}

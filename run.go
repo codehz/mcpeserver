@@ -72,7 +72,6 @@ func runImpl(done chan bool) (*os.File, func()) {
 	}()
 	return f, func() {
 		status = false
-		cmd.Process.Signal(os.Interrupt)
 		<-selfLock
 	}
 }
@@ -94,6 +93,7 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 	f, stop := runImpl(proc)
 	defer f.Close()
 	defer stop()
+	defer bus.stop()
 	username := "nobody"
 	hostname := "bedrockserver"
 	{
