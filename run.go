@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/godbus/dbus"
 	"github.com/kr/pty"
 	"github.com/valyala/fasttemplate"
 )
@@ -81,17 +80,9 @@ func runImpl(done chan bool) (*os.File, func()) {
 var table = []string{"T", "D", "I", "N", "W", "E", "F"}
 
 func run(profile string, prompt *fasttemplate.Template) bool {
-	conn, err := dbus.SystemBus()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
-		os.Exit(1)
-	}
-	defer conn.Close()
-	conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0,
-		fmt.Sprintf("type='signal',path='/',interface='bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
-	dbusLog := make(chan *dbus.Signal, 10)
-	conn.Signal(dbusLog)
-	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/one/codehz/bedrockserver")
+	var bus bus
+	bus.init(profile)
+	defer bus.close()
 
 	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -152,8 +143,7 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 			status = true
 			rl.Close()
 		default:
-			var rid uint32
-			err := dbusObj.Call("bedrockserver.core.exec", 0, ncmd).Store(&rid)
+			rid, err := bus.exec(ncmd)
 			if err != nil {
 				fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
 			} else {
@@ -165,10 +155,10 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 		fmt.Fprintf(lw, "\033[0m%s\033[0m\n", text)
 	})
 	go func() {
-		for v := range dbusLog {
-			if v.Name == "bedrockserver.core.log" {
+		for v := range bus.log {
+			if v.Name == "one.codehz.bedrockserver.core.log" {
 				fmt.Fprintf(lw, "\033[0m%s [%v] %v\033[0m\n", table[v.Body[0].(uint8)], v.Body[1], v.Body[2])
-			} else if v.Name == "bedrockserver.core.exec_result" {
+			} else if v.Name == "one.codehz.bedrockserver.core.exec_result" {
 				if _, ok := queue[v.Body[0].(uint32)]; ok {
 					fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(v.Body[1].(string)))
 				}
