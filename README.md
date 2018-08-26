@@ -9,21 +9,28 @@ Powered By [MCMrARM/mcpelauncher-linux](https://github.com/MCMrARM/mcpelauncher-
 
 ## Usage
 
-```shell
-wget $(curl -s https://api.github.com/repos/codehz/mcpeserver/releases/latest|jq -r '.assets[0].browser_download_url')
-chmod +x  mcpeserver
-./mcpeserver download # download the core binary for minecraft server
-./mcpeserver unpack -apk XXX.apk # unpack assets from minecraft
-./mcpeserver run # running!
+### For ArchLinux
+
+1. Append the repo to `/etc/pacman.conf`
 ```
+[mcpeserver]
+SigLevel = Never
+Server = https://cdn.codehz.one/repo/archlinux/
+```
+2. Execute `pacman -Syu mcpeserver mcpeserver-core`
+3. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
+4. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
+5. Attach to the server for input command: `mcpeserver attach -profile default`
 
-* You must provide a valid minecraft x86 apk
+### For Ubuntu
 
-More document can be found in [wiki](https://github.com/codehz/mcpeserver/wiki)
+Comming soon
 
 ## Features
 
 * Auto Complete For Command
+* Systemd Based Service
+* DBus Interface
 
 ## LICENSE
 
