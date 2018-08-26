@@ -8,7 +8,7 @@ User=mcpeserver
 Group=mcpeserver
 WorkingDirectory=/srv/mcpeserver
 ExecStart=/usr/bin/mcpeserver daemon -profile %i -systemd
-ExecStop=/usr/bin/dbus-send --system --print-reply --dest=one.codehz.bedrockserver.default /one/codehz/bedrockserver one.codehz.bedrockserver.core.stop
+ExecStop=/usr/bin/dbus-send --system --print-reply --dest=one.codehz.bedrockserver.%i /one/codehz/bedrockserver one.codehz.bedrockserver.core.stop
 Type=dbus
 BusName=one.codehz.bedrockserver.%i
 Restart=on-failure
