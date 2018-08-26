@@ -50,9 +50,9 @@ func attach(profile string, prompt *fasttemplate.Template) {
 	queue := make(map[uint32]bool)
 	go func() {
 		for v := range bus.log {
-			if v.Name == "bedrockserver.core.log" {
+			if v.Name == "one.codehz.bedrockserver.core.log" {
 				fmt.Fprintf(lw, "\033[0m%s [%v] %v\033[0m\n", table[v.Body[0].(uint8)], v.Body[1], v.Body[2])
-			} else if v.Name == "bedrockserver.core.exec_result" {
+			} else if v.Name == "one.codehz.bedrockserver.core.exec_result" {
 				if _, ok := queue[v.Body[0].(uint32)]; ok {
 					fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(v.Body[1].(string)))
 				}
