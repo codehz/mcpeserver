@@ -1,3 +1,4 @@
 package main
 
-var VERSION = "0.7.1"
+// VERSION the version string
+const VERSION string = "0.7.2"
