@@ -12,14 +12,14 @@ import (
 )
 
 func attach(profile string, prompt *fasttemplate.Template) {
-	conn, err := dbus.SessionBus()
+	conn, err := dbus.SystemBus()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
 		os.Exit(1)
 	}
 	defer conn.Close()
 	conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0,
-		fmt.Sprintf("type='signal',path='/',interface='bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
+		fmt.Sprintf("type='signal',path='/',interface='one.codehz.bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
 	dbusLog := make(chan *dbus.Signal, 10)
 	conn.Signal(dbusLog)
 	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/")

@@ -82,7 +82,7 @@ func runImpl(datapath string, done chan bool) (*os.File, func()) {
 var table = []string{"T", "D", "I", "N", "W", "E", "F"}
 
 func run(datapath, profile string, prompt *fasttemplate.Template) bool {
-	conn, err := dbus.SessionBus()
+	conn, err := dbus.SystemBus()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
 		os.Exit(1)

@@ -21,7 +21,7 @@ var priMap = []journal.Priority{
 }
 
 func runDaemon(datapath, profile string) {
-	conn, err := dbus.SessionBus()
+	conn, err := dbus.SystemBus()
 	if err != nil {
 		printWarn("Failed to connect to session bus:" + err.Error())
 		os.Exit(1)
