@@ -50,7 +50,7 @@ type attachCmd struct {
 
 func (*attachCmd) Name() string     { return "attach" }
 func (*attachCmd) Synopsis() string { return "attach daemon" }
-func (*attachCmd) Usage() string    { return "attach [-profile] [-prompt]" }
+func (*attachCmd) Usage() string    { return "attach [-profile] [-prompt]\n" }
 func (a *attachCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&a.profile, "profile", "default", "Game Profile")
 	f.StringVar(&a.prompt, "prompt", "{{esc}}[0;36;1msocket:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
