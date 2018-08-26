@@ -59,7 +59,6 @@ func packOutput(input io.Reader, output func(string)) {
 
 func runImpl(datapath string, done chan bool) (*os.File, func()) {
 	cmd := exec.Command("./bin/bedrockserver")
-	cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH=.")
 	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)
 	if err != nil {
@@ -92,7 +91,7 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 		fmt.Sprintf("type='signal',path='/',interface='bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
 	dbusLog := make(chan *dbus.Signal, 10)
 	conn.Signal(dbusLog)
-	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/")
+	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/one/codehz/bedrockserver")
 
 	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

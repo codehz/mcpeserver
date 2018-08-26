@@ -22,7 +22,7 @@ func attach(profile string, prompt *fasttemplate.Template) {
 		fmt.Sprintf("type='signal',path='/',interface='one.codehz.bedrockserver.core',sender='one.codehz.bedrockserver.%s'", profile))
 	dbusLog := make(chan *dbus.Signal, 10)
 	conn.Signal(dbusLog)
-	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/")
+	dbusObj := conn.Object("one.codehz.bedrockserver."+profile, "/one/codehz/bedrockserver")
 
 	username := "nobody"
 	hostname := "mcpeserver"
