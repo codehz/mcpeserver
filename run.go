@@ -57,7 +57,7 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(datapath string, done chan bool) (*os.File, func()) {
+func runImpl(done chan bool) (*os.File, func()) {
 	cmd := exec.Command("./bin/bedrockserver")
 	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)
@@ -80,7 +80,7 @@ func runImpl(datapath string, done chan bool) (*os.File, func()) {
 
 var table = []string{"T", "D", "I", "N", "W", "E", "F"}
 
-func run(datapath, profile string, prompt *fasttemplate.Template) bool {
+func run(profile string, prompt *fasttemplate.Template) bool {
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
@@ -100,7 +100,7 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 	}
 	defer log.Close()
 	proc := make(chan bool, 1)
-	f, stop := runImpl(datapath, proc)
+	f, stop := runImpl(proc)
 	defer f.Close()
 	defer stop()
 	username := "nobody"

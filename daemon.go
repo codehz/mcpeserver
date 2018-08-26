@@ -5,8 +5,11 @@ import (
 	"os/exec"
 )
 
-func runDaemon(datapath, profile string) {
+func runDaemon(profile string, systemd bool) {
 	cmd := exec.Command("./bin/bedrockserver")
 	cmd.Dir, _ = os.Getwd()
 	cmd.Start()
+	if systemd {
+		cmd.Wait()
+	}
 }

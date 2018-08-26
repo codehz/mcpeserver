@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/google/subcommands"
 	"github.com/valyala/fasttemplate"
@@ -68,7 +67,6 @@ func (a *attachCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 }
 
 type runCmd struct {
-	data    string
 	profile string
 	prompt  string
 }
@@ -82,11 +80,10 @@ func (*runCmd) Synopsis() string {
 }
 
 func (*runCmd) Usage() string {
-	return "run [-data] [-profile] [-prompt] \n\tRun Minecraft Server\n"
+	return "run [-profile] [-prompt] \n\tRun Minecraft Server\n"
 }
 
 func (c *runCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&c.profile, "profile", "default", "Game Proile")
 	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
 }
@@ -111,8 +108,7 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 		}
 	}()
 	checkBin()
-	c.data, _ = filepath.Abs(c.data)
-	for run(c.data, c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
+	for run(c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
 		printInfo("restarting...")
 	}
 	return subcommands.ExitSuccess
@@ -154,18 +150,18 @@ func (c *modsCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 }
 
 type daemonCmd struct {
-	data    string
 	profile string
+	systemd bool
 }
 
 func (*daemonCmd) Name() string     { return "daemon" }
 func (*daemonCmd) Synopsis() string { return "Daemon" }
 func (*daemonCmd) Usage() string {
-	return "daemon [-bin] [-data]\n\tRun server as daemon"
+	return "daemon [-profile] [-systemd]\n\tRun server as daemon"
 }
 func (d *daemonCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&d.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&d.profile, "profile", "default", "Game Profile")
+	f.BoolVar(&d.systemd, "systemd", false, "Systemd mode")
 }
 func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
 	defer func() {
@@ -175,8 +171,7 @@ func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		}
 	}()
 	checkBin()
-	d.data, _ = filepath.Abs(d.data)
-	runDaemon(d.data, d.profile)
+	runDaemon(d.profile, d.systemd)
 	return subcommands.ExitSuccess
 }
 
