@@ -140,40 +140,6 @@ func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	return subcommands.ExitSuccess
 }
 
-type updateCmd struct {
-	path string
-}
-
-func (*updateCmd) Name() string {
-	return "update"
-}
-
-func (*updateCmd) Synopsis() string {
-	return "Self-Update"
-}
-
-func (*updateCmd) Usage() string {
-	return "update [-target]\n"
-}
-
-func (c *updateCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.path, "path", "./mcpeserver", "Download target")
-}
-
-func (c *updateCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("\033[5;91mError: \n", r)
-			ret = subcommands.ExitFailure
-		}
-	}()
-	printInfo("Get Latest Release...")
-	url := getServerURL()
-	printPair("URL", url)
-	fetchBinary(url, c.path)
-	return subcommands.ExitSuccess
-}
-
 type versionCmd struct{}
 
 func (*versionCmd) Name() string             { return "version" }
@@ -193,7 +159,6 @@ func main() {
 	subcommands.Register(&attachCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&daemonCmd{}, "")
-	subcommands.Register(&updateCmd{}, "")
 	subcommands.Register(&versionCmd{}, "")
 
 	flag.Parse()
