@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/google/subcommands"
 	"github.com/valyala/fasttemplate"
@@ -151,6 +152,39 @@ func (*versionCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{})
 	return subcommands.ExitSuccess
 }
 
+type execCmd struct {
+	profile string
+	timeout int
+}
+
+func (*execCmd) Name() string     { return "exec" }
+func (*execCmd) Synopsis() string { return "Exec command and retrieve the output" }
+func (*execCmd) Usage() string    { return "exec [-profile] [-timeout] [command]\n" }
+func (cmd *execCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&cmd.profile, "profile", "default", "Game Profile")
+	f.IntVar(&cmd.timeout, "timeout", 1000, "Timout")
+}
+func (cmd *execCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("\033[5;91mError: \n", r)
+			ret = subcommands.ExitFailure
+		}
+	}()
+	args := f.Args()
+	if len(args) == 0 {
+		printWarn("Empty command")
+		return subcommands.ExitUsageError
+	}
+	result, err := runExec(cmd.profile, strings.Join(args, " "), cmd.timeout)
+	if err != nil {
+		printWarn(err.Error())
+		return subcommands.ExitFailure
+	}
+	fmt.Println(result)
+	return subcommands.ExitSuccess
+}
+
 func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
@@ -159,6 +193,7 @@ func main() {
 	subcommands.Register(&attachCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&daemonCmd{}, "")
+	subcommands.Register(&execCmd{}, "")
 	subcommands.Register(&versionCmd{}, "")
 
 	flag.Parse()
