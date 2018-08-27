@@ -43,6 +43,7 @@ var replacer = strings.NewReplacer(
 	")", "\033[24m)",
 	"<", "\033[1m<",
 	">", ">\033[22m",
+	"\n", "\033[0m\n",
 )
 
 func packOutput(input io.Reader, output func(string)) {
