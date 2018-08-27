@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/google/subcommands"
 	"github.com/valyala/fasttemplate"
@@ -51,7 +50,7 @@ type attachCmd struct {
 
 func (*attachCmd) Name() string     { return "attach" }
 func (*attachCmd) Synopsis() string { return "attach daemon" }
-func (*attachCmd) Usage() string    { return "attach [-profile] [-prompt]" }
+func (*attachCmd) Usage() string    { return "attach [-profile] [-prompt]\n" }
 func (a *attachCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&a.profile, "profile", "default", "Game Profile")
 	f.StringVar(&a.prompt, "prompt", "{{esc}}[0;36;1msocket:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
@@ -63,13 +62,11 @@ func (a *attachCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			ret = subcommands.ExitFailure
 		}
 	}()
-	var socket, _ = filepath.Abs(a.profile + ".sock")
-	attach(socket, fasttemplate.New(a.prompt, "{{", "}}"))
+	attach(a.profile, fasttemplate.New(a.prompt, "{{", "}}"))
 	return subcommands.ExitSuccess
 }
 
 type runCmd struct {
-	data    string
 	profile string
 	prompt  string
 }
@@ -83,20 +80,19 @@ func (*runCmd) Synopsis() string {
 }
 
 func (*runCmd) Usage() string {
-	return "run [-data] [-profile] [-prompt] \n\tRun Minecraft Server\n"
+	return "run [-profile] [-prompt] \n\tRun Minecraft Server\n"
 }
 
 func (c *runCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&c.profile, "profile", "default", "Game Proile")
 	f.StringVar(&c.prompt, "prompt", "{{esc}}[0;36;1mmcpe:{{esc}}[22m//{{username}}@{{hostname}}$ {{esc}}[33;4m", "Prompt String Template")
 }
 
 func checkBin() {
 	if _, err := os.Stat("./bin"); err != nil {
-		printWarn("bin folder is not exists, checking /opt/mcpeserver-core...")
+		printWarn("/bin not found, checking /opt/mcpeserver-core...")
 		if _, err = os.Stat("/opt/mcpeserver-core"); err != nil {
-			printWarn("/opt/mcpeserver-core is also not exists, exiting...")
+			printWarn("/opt/mcpeserver-core not found, exiting...")
 			os.Exit(1)
 		} else {
 			os.Symlink("/opt/mcpeserver-core", "bin")
@@ -112,61 +108,25 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 		}
 	}()
 	checkBin()
-	c.data, _ = filepath.Abs(c.data)
-	for run(c.data, c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
+	for run(c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
 		printInfo("restarting...")
 	}
 	return subcommands.ExitSuccess
 }
 
-type modsCmd struct {
-	endpoint string
-	info     string
-	remote   bool
-	download string
-}
-
-func (*modsCmd) Name() string     { return "mods" }
-func (*modsCmd) Synopsis() string { return "Mods Management" }
-func (*modsCmd) Usage() string    { return "mods [--endpoint] [--info] [--remote] [--download]\n" }
-func (c *modsCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.endpoint, "endpoint", "https://mcpe.codehz.one/", "Mods Repo Endpoint")
-	f.StringVar(&c.info, "info", "", "Display a Remote Mods' info")
-	f.BoolVar(&c.remote, "remote", false, "List Remote Mods")
-	f.StringVar(&c.download, "download", "", "Download Mod")
-}
-func (c *modsCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("\033[5;91mError: \n", r)
-			ret = subcommands.ExitFailure
-		}
-	}()
-	if c.remote {
-		listRemoteMod(c.endpoint)
-	} else if len(c.info) > 0 {
-		infoRemoteMod(c.endpoint, c.info)
-	} else if len(c.download) > 0 {
-		downloadMod(c.endpoint, c.download)
-	} else {
-		listLocalMod()
-	}
-	return subcommands.ExitSuccess
-}
-
 type daemonCmd struct {
-	data    string
 	profile string
+	systemd bool
 }
 
 func (*daemonCmd) Name() string     { return "daemon" }
 func (*daemonCmd) Synopsis() string { return "Daemon" }
 func (*daemonCmd) Usage() string {
-	return "daemon [-bin] [-data]\n\tRun server as daemon"
+	return "daemon [-profile] [-systemd]\n\tRun server as daemon"
 }
 func (d *daemonCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&d.data, "data", "data", "Minecraft Data Directory")
 	f.StringVar(&d.profile, "profile", "default", "Game Profile")
+	f.BoolVar(&d.systemd, "systemd", false, "Systemd mode")
 }
 func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (ret subcommands.ExitStatus) {
 	defer func() {
@@ -176,8 +136,7 @@ func (d *daemonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		}
 	}()
 	checkBin()
-	d.data, _ = filepath.Abs(d.data)
-	runDaemon(d.data, d.profile)
+	runDaemon(d.profile, d.systemd)
 	return subcommands.ExitSuccess
 }
 
@@ -190,7 +149,7 @@ func (*updateCmd) Name() string {
 }
 
 func (*updateCmd) Synopsis() string {
-	return "Update Self"
+	return "Self-Update"
 }
 
 func (*updateCmd) Usage() string {
@@ -235,7 +194,6 @@ func main() {
 	subcommands.Register(&runCmd{}, "")
 	subcommands.Register(&daemonCmd{}, "")
 	subcommands.Register(&updateCmd{}, "")
-	subcommands.Register(&modsCmd{}, "")
 	subcommands.Register(&versionCmd{}, "")
 
 	flag.Parse()

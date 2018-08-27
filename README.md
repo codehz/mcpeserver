@@ -11,23 +11,37 @@ This server software utilizes the built-in server components inside the Minecraf
 
 * Currently the release version supports Minecraft version 1.5.0 and the pre-release version supports 1.5.1.2 as the server core. But all 1.5.x client versions should be able to play on the server.
 
-## Usage
+## Features
 
-* A Minecraft x86 apk is needed.
-* Only specific Minecraft versions are supported.
-* I recommend running the server on CentOS 7 or Ubuntu. To run the server on Ubuntu, you have to manually add 32-bit support.
+* Auto Complete For Command
+* Full Minecraft Bedrock server feature support.
+* Systemd Based Service
+* DBus Interface
 
-```shell
-wget $(curl -s https://api.github.com/repos/codehz/mcpeserver/releases/latest|jq -r '.assets[0].browser_download_url')
-chmod +x  mcpeserver
-./mcpeserver download # download the core binary for minecraft server
-./mcpeserver unpack -apk XXX.apk # unpack assets from minecraft x86 apk
-./mcpeserver run # run the server!
+## Installation
+
+### For ArchLinux
+
+1. Append the repo to `/etc/pacman.conf`
 ```
+[mcpeserver]
+SigLevel = Never
+Server = https://cdn.codehz.one/repo/archlinux/
+```
+2. Execute `pacman -Syu mcpeserver mcpeserver-core`
+3. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
+4. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
+5. Attach to the server for input command: `mcpeserver attach -profile default`
+
+### For Ubuntu
+
+Comming soon
+
+## Usage
 
 You might want to edit the server configuration file before actually running the server.
 
-Server configuration file is located in /games/server.properties for release versions, or /default.cfg for pre-release versions.
+Server configuration file is located in /srv/micpeserver/default.cfg.
 
 Here is an example of the server configuration file.
 ```shell
@@ -46,31 +60,23 @@ online-mode=true
 view-distance=56
 player-idle-timeout=0
 ```
-The preferred way is to put your own world in /games/com.mojang/minecraftWorlds and change the level-dir to the name of your world folder. Otherwise the server will generate a world based on the seed in the config file with some very undesirable settings.
+The preferred way is to put your own world in /srv/mcpeserver/worlds and change the level-dir to the name of your world folder. Otherwise the server will generate a world based on the seed in the config file with some very undesirable settings.
+
+(Tips: make sure all files in /srv/mcpeserver can be accessed by mcpeserver user)
 
 Basic server commands are supported such as list, say, op, etc.
 ```shell
-mcpe://user@localhost.localdomain$ list
+socket://user@localhost.localdomain$ /list
 There are 1/40 players online:
-Cube64128
+CodeHz
 
-mcpe://user@localhost.localdomain$ say Hi!
+socket://user@localhost.localdomain$ /say Hi!
 [Server] Hi!
 
-mcpe://user@localhost.localdomain$ op Cube64128
+socket://user@localhost.localdomain$ /op CodeHz
 ```
-To gracefully shut down the server, use the following command:
-```shell
-mcpe://user@localhost.localdomain$ :quit
-```
-
-Mods can be found at https://mcpe.codehz.one/
 
 Refer to [wiki](https://github.com/codehz/mcpeserver/wiki) for other usage.
-## Features
-
-* Auto complete of commands.
-* Full Minecraft Bedrock server feature support.
 
 ## LICENSE
 

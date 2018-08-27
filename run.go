@@ -56,9 +56,8 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(datapath string, done chan bool) (*os.File, func()) {
+func runImpl(done chan bool) (*os.File, func()) {
 	cmd := exec.Command("./bin/bedrockserver")
-	cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH=.")
 	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)
 	if err != nil {
@@ -73,12 +72,17 @@ func runImpl(datapath string, done chan bool) (*os.File, func()) {
 	}()
 	return f, func() {
 		status = false
-		cmd.Process.Signal(os.Interrupt)
 		<-selfLock
 	}
 }
 
-func run(datapath, profile string, prompt *fasttemplate.Template) bool {
+var table = []string{"T", "D", "I", "N", "W", "E", "F"}
+
+func run(profile string, prompt *fasttemplate.Template) bool {
+	var bus bus
+	bus.init(profile)
+	defer bus.close()
+
 	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		printWarn("Log File load failed")
@@ -86,9 +90,10 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 	}
 	defer log.Close()
 	proc := make(chan bool, 1)
-	f, stop := runImpl(datapath, proc)
+	f, stop := runImpl(proc)
 	defer f.Close()
 	defer stop()
+	defer bus.stop()
 	username := "nobody"
 	hostname := "bedrockserver"
 	{
@@ -110,7 +115,7 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 		HistoryFile:     ".readline-history",
 		AutoComplete:    completer,
 		InterruptPrompt: "^C",
-		EOFPrompt:       "quit",
+		EOFPrompt:       ":quit",
 
 		HistorySearchFold: true,
 		FuncFilterInputRune: func(r rune) (rune, bool) {
@@ -123,31 +128,43 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 	defer rl.Close()
 	lw := io.MultiWriter(rl.Stdout(), log)
 	status := false
+	queue := make(map[uint32]bool)
 	execFn := func(src, cmd string) {
-		fmt.Fprintf(f, "%s\n", cmd)
-		fmt.Fprintf(log, "%s>%s\n", src, cmd)
-		switch {
-		case strings.HasPrefix(cmd, ":restart"):
-			status = true
-			rl.Close()
-		case strings.HasPrefix(cmd, ":quit"):
-			status = true
-			rl.Close()
+		ncmd := strings.TrimSpace(cmd)
+		if len(ncmd) == 0 {
+			return
 		}
-	}
-	cache := 0
-	go packOutput(f, func(text string) {
-		if strings.HasPrefix(text, "\x07") {
-			execFn("mod", text[1:len(text)-1])
-			cache++
-		} else {
-			if cache == 0 {
-				fmt.Fprintf(lw, "\033[0m%s\033[0m\n", replacer.Replace(text))
+		fmt.Fprintf(log, "%s>%s\n", src, ncmd)
+		switch {
+		case strings.HasPrefix(ncmd, ":restart"):
+			status = true
+			rl.Close()
+		case strings.HasPrefix(ncmd, ":quit"):
+			status = true
+			rl.Close()
+		default:
+			rid, err := bus.exec(ncmd)
+			if err != nil {
+				fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
 			} else {
-				cache--
+				queue[rid] = true
 			}
 		}
+	}
+	go packOutput(f, func(text string) {
+		fmt.Fprintf(lw, "\033[0m%s\033[0m\n", text)
 	})
+	go func() {
+		for v := range bus.log {
+			if v.Name == "one.codehz.bedrockserver.core.log" {
+				fmt.Fprintf(lw, "\033[0m%s [%v] %v\033[0m\n", table[v.Body[0].(uint8)], v.Body[1], v.Body[2])
+			} else if v.Name == "one.codehz.bedrockserver.core.exec_result" {
+				if _, ok := queue[v.Body[0].(uint32)]; ok {
+					fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(v.Body[1].(string)))
+				}
+			}
+		}
+	}()
 	for {
 		line, err := rl.Readline()
 		if err == readline.ErrInterrupt {
@@ -166,7 +183,6 @@ func run(datapath, profile string, prompt *fasttemplate.Template) bool {
 		case strings.HasPrefix(line, ":quit"):
 			return status
 		default:
-			cache++
 			execFn("console", line)
 		}
 	}
