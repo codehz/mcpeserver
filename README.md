@@ -29,9 +29,10 @@ SigLevel = Never
 Server = https://cdn.codehz.one/repo/archlinux/
 ```
 2. Execute `pacman -Syu mcpeserver mcpeserver-core`
-3. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
-4. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
-5. Attach to the server for input command: `mcpeserver attach -profile default`
+3. Execute `systemctl reload dbus`
+4. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
+5. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
+6. Attach to the server for input command: `mcpeserver attach -profile default`
 
 ### For Ubuntu
 
