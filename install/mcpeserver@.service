@@ -7,6 +7,7 @@ After=network.target
 User=mcpeserver
 Group=mcpeserver
 WorkingDirectory=/srv/mcpeserver
+ExecStartPre=-/usr/bin/install -dm 0755 -o mcpeserver -g mcpeserver /srv/mcpeserver
 ExecStart=/usr/bin/mcpeserver daemon -profile %i -systemd
 ExecStop=/usr/bin/dbus-send --system --print-reply --dest=one.codehz.bedrockserver.%i /one/codehz/bedrockserver one.codehz.bedrockserver.core.stop
 Type=dbus
