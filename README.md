@@ -9,7 +9,7 @@ Powered By [MCMrARM/mcpelauncher-linux](https://github.com/MCMrARM/mcpelauncher-
 
 This server software utilizes the built-in server components inside the Minecraft android apk file to run a native Bedrock server. All features are available and you can get Xbox Live achievements on the server, just like realms. Plus more control over the server, it's actually way better than realms.
 
-* Currently the release version supports Minecraft version 1.5.0 and the pre-release version supports 1.5.1.2 as the server core. But all 1.5.x client versions should be able to play on the server.
+* Currently the release version supports Minecraft version 1.6.0 as the server core. But all 1.6.x client versions should be able to play on the server.
 
 ## Features
 
