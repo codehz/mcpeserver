@@ -57,8 +57,8 @@ func packOutput(input io.Reader, output func(string)) {
 	}
 }
 
-func runImpl(done chan bool) (*os.File, func()) {
-	cmd := exec.Command("./bin/bedrockserver")
+func runImpl(done chan bool, profile string) (*os.File, func()) {
+	cmd := exec.Command("./bin/bedrockserver", profile)
 	cmd.Dir, _ = os.Getwd()
 	f, err := pty.Start(cmd)
 	if err != nil {
@@ -91,7 +91,7 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 	}
 	defer log.Close()
 	proc := make(chan bool, 1)
-	f, stop := runImpl(proc)
+	f, stop := runImpl(proc, profile)
 	defer f.Close()
 	defer stop()
 	defer bus.stop()
