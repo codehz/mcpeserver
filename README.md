@@ -14,9 +14,9 @@ This server software utilizes the built-in server components inside the Minecraf
 ## Features
 
 * Auto Complete For Command
-* Full Minecraft Bedrock server feature support.
+* Full Minecraft Bedrock server feature/bug support
 * Systemd Based Service
-* DBus Interface
+* DBus Based Interface
 
 ## Installation
 
@@ -30,9 +30,12 @@ Server = https://cdn.codehz.one/repo/archlinux/
 ```
 2. Execute `pacman -Syu mcpeserver mcpeserver-core`
 3. Execute `systemctl reload dbus`
-4. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
-5. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
-6. Attach to the server for input command: `mcpeserver attach -profile default`
+4. Execute `install -dm 0755 -o mcpeserver /srv/mcpeserver`
+5. Put the minecraft x86 apk to `/srv/mcpeserver`, and then run `cd /srv/mcpeserver && sudo mcpeserver unpack --apk (the apk filename)`
+6. Start: `systemctl start mcpeserver@default.service`, Stop: `systemctl stop mcpeserver@default.service`
+7. Attach to the server for input command: `mcpeserver attach -profile default`
+
+Tips: make sure the owner of /srv/mcpeserver is mcpeserver (except for bin/data directory)
 
 ### For Ubuntu
 
@@ -47,13 +50,13 @@ Server configuration file is located in /srv/micpeserver/default.cfg.
 Here is an example of the server configuration file.
 ```shell
 level-dir=world
-level-name=§aServer example
+level-name="§aServer example"
 level-generator=1
 level-seed=1019130957
 difficulty=3
 gamemode=0
 force-gamemode=false
-motd=§6Welcome to §9server example!
+motd="§6Welcome to §9server example!"
 server-port=19132
 server-port-v6=19133
 max-players=40
