@@ -109,10 +109,10 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 		}
 	}()
 	checkBin()
-	for run(c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
-		printInfo("restarting...")
+	if run(c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
+		return subcommands.ExitSuccess
 	}
-	return subcommands.ExitSuccess
+	return subcommands.ExitFailure
 }
 
 type daemonCmd struct {

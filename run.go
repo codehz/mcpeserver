@@ -129,7 +129,6 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 	})
 	defer rl.Close()
 	lw := io.MultiWriter(rl.Stdout(), log)
-	status := false
 	queue := make(map[uint32]bool)
 	execFn := func(src, cmd string) {
 		ncmd := strings.TrimSpace(cmd)
@@ -137,20 +136,11 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 			return
 		}
 		fmt.Fprintf(log, "%s>%s\n", src, ncmd)
-		switch {
-		case strings.HasPrefix(ncmd, ":restart"):
-			status = true
-			rl.Close()
-		case strings.HasPrefix(ncmd, ":quit"):
-			status = true
-			rl.Close()
-		default:
-			rid, err := bus.exec(ncmd)
-			if err != nil {
-				fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
-			} else {
-				queue[rid] = true
-			}
+		rid, err := bus.exec(ncmd)
+		if err != nil {
+			fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
+		} else {
+			queue[rid] = true
 		}
 	}
 	go packOutput(f, func(text string) {
@@ -167,26 +157,22 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 			}
 		}
 	}()
-	for {
-		line, err := rl.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
+	go func() {
+		for {
+			line, err := rl.Readline()
+			if err == readline.ErrInterrupt {
+				if len(line) == 0 {
+					break
+				} else {
+					continue
+				}
+			} else if err == io.EOF {
 				break
-			} else {
-				continue
 			}
-		} else if err == io.EOF {
-			break
-		}
-		line = strings.TrimSpace(line)
-		switch {
-		case strings.HasPrefix(line, ":restart"):
-			return true
-		case strings.HasPrefix(line, ":quit"):
-			return status
-		default:
+			line = strings.TrimSpace(line)
 			execFn("console", line)
 		}
-	}
-	return false
+		bus.stop()
+	}()
+	return <-proc
 }
