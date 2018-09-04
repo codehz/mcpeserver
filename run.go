@@ -60,7 +60,7 @@ func packOutput(input io.Reader, output func(string)) {
 func runImpl(done chan bool, profile string) (*os.File, func()) {
 	cmd := exec.Command("./bin/bedrockserver", profile)
 	cmd.Dir, _ = os.Getwd()
-	cmd.Env = append(cmd.Env, "LD_LIBRARY_PATH=./lib")
+	cmd.Env = append(cmd.Env, "LD_LIBRARY_PATH=./lib", "XDG_CACHE_HOME=./cache")
 	f, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)
