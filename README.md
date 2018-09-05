@@ -37,9 +37,9 @@ Server = https://cdn.codehz.one/repo/archlinux/
 
 Tips: make sure the owner of /srv/mcpeserver is mcpeserver (except for bin/data directory)
 
-### For Ubuntu
+### For Other Distros
 
-Comming soon
+Trying https://gist.github.com/codehz/610bdeba96fcec16e6339abae7208e7d
 
 ## Usage
 
