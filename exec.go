@@ -41,5 +41,4 @@ func runExec(profile, command string, timeout int) (string, error) {
 			return res, nil
 		}
 	}
-	return "", nil
 }
