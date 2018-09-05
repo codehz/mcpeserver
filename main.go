@@ -64,6 +64,7 @@ func (a *attachCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		}
 	}()
 	attach(a.profile, fasttemplate.New(a.prompt, "{{", "}}"))
+	printInfo("Done.")
 	return subcommands.ExitSuccess
 }
 
@@ -110,8 +111,10 @@ func (c *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) (
 	}()
 	checkBin()
 	if run(c.profile, fasttemplate.New(c.prompt, "{{", "}}")) {
+		printInfo("Done.")
 		return subcommands.ExitSuccess
 	}
+	printInfo("Failed.")
 	return subcommands.ExitFailure
 }
 
