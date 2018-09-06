@@ -31,8 +31,8 @@ func (b bus) close() {
 	b.conn.Close()
 }
 
-func (b bus) exec(cmd string) (uint32, error) {
-	var rid uint32
+func (b bus) exec(cmd string) (string, error) {
+	var rid string
 	err := b.obj.Call("one.codehz.bedrockserver.core.exec", 0, cmd).Store(&rid)
 	return rid, err
 }

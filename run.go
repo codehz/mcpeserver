@@ -129,18 +129,17 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 	})
 	defer rl.Close()
 	lw := io.MultiWriter(rl.Stdout(), log)
-	queue := make(map[uint32]bool)
 	execFn := func(src, cmd string) {
 		ncmd := strings.TrimSpace(cmd)
 		if len(ncmd) == 0 {
 			return
 		}
 		fmt.Fprintf(log, "%s>%s\n", src, ncmd)
-		rid, err := bus.exec(ncmd)
+		result, err := bus.exec(ncmd)
 		if err != nil {
 			fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
 		} else {
-			queue[rid] = true
+			fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(result))
 		}
 	}
 	go packOutput(f, func(text string) {
@@ -150,10 +149,6 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 		for v := range bus.log {
 			if v.Name == "one.codehz.bedrockserver.core.log" {
 				fmt.Fprintf(lw, "\033[0m%s [%v] %v\033[0m\n", table[v.Body[0].(uint8)], v.Body[1], v.Body[2])
-			} else if v.Name == "one.codehz.bedrockserver.core.exec_result" {
-				if _, ok := queue[v.Body[0].(uint32)]; ok {
-					fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(v.Body[1].(string)))
-				}
 			}
 		}
 	}()
