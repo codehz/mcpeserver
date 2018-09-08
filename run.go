@@ -139,7 +139,9 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 		if err != nil {
 			fmt.Fprintf(lw, "\033[0m%v\033[0m\n", err)
 		} else {
-			fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(result))
+			if len(result) > 0 {
+				fmt.Fprintf(lw, "\033[0m%s\n\033[0m", replacer.Replace(result))
+			}
 		}
 	}
 	go packOutput(f, func(text string) {
