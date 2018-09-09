@@ -84,6 +84,11 @@ func run(profile string, prompt *fasttemplate.Template) bool {
 	var bus bus
 	bus.init(profile)
 	defer bus.close()
+	_, err := bus.ping()
+	if err == nil {
+		printWarn("Server is started by other process")
+		return false
+	}
 
 	log, err := os.OpenFile(profile+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
