@@ -45,7 +45,7 @@ Trying https://gist.github.com/codehz/610bdeba96fcec16e6339abae7208e7d
 
 You might want to edit the server configuration file before actually running the server.
 
-Server configuration file is located in /srv/micpeserver/default.cfg.
+Server configuration file is located in /srv/mcpeserver/default.cfg.
 
 Here is an example of the server configuration file.
 ```shell
